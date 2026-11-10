@@ -1,0 +1,13 @@
+[project]
+name = "related-party-radar"
+version = "0.1.0"
+description = "Related Party Radar: deep research over SEC proxy and 10-K filings for insider deals, tested against SEC Item 404 and ISS independence lines"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.109",
+    "google-cloud-aiplatform>=1.40",
+    "httpx>=0.27",
+    "openai-agents[litellm]>=0.22",
+    "python-dotenv>=1.0",
+    "uvicorn>=0.27",
+]

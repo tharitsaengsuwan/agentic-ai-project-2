@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Related Party Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<style>
+:root {
+  --paper: #f6f4ee;
+  --card: #fcfcfb;
+  --ink: #1b1b1a;
+  --ink-2: #52514e;
+  --ink-3: #8a887f;
+  --rule: #e1e0d9;
+  --axis: #c3c2b7;
+  --accent: #7a2e1f;        /* oxblood: the "filing stamp" */
+  --accent-soft: #f1e4df;
+  --good: #0ca30c;
+  --warning: #fab219;
+  --critical: #d03b3b;
+  --neutral: #a3a197;
+  --good-text: #006300;
+  --shadow: 0 1px 0 rgba(11,11,11,.04), 0 8px 24px -12px rgba(11,11,11,.12);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #141413; --card: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #8f8d84;
+    --rule: #2c2c2a; --axis: #383835; --accent: #e08a72; --accent-soft: #2e1f1a; --good-text: #0ca30c;
+    --shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #141413; --card: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #8f8d84;
+  --rule: #2c2c2a; --axis: #383835; --accent: #e08a72; --accent-soft: #2e1f1a; --good-text: #0ca30c;
+  --shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.55 Inter, system-ui, sans-serif; padding: 0 16px 4rem; }
+a { color: var(--accent); }
+.mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+main { max-width: 980px; margin: 0 auto; }
+
+/* --- Masthead --- */
+header.mast { padding: 2.5rem 0 1.5rem; border-bottom: 2px solid var(--ink); display: grid; gap: .75rem; }
+.kicker { font: 500 .72rem/1 "IBM Plex Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 700 clamp(2rem, 5vw, 3.1rem)/1.05 "Source Serif 4", Georgia, serif; letter-spacing: -.01em; }
+.dek { font: 400 1.15rem/1.45 "Source Serif 4", Georgia, serif; color: var(--ink-2); max-width: 46rem; }
+.about { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; padding: 1.25rem 0; border-bottom: 1px solid var(--rule); }
+.about h3 { font: 600 .72rem/1 "IBM Plex Mono", monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin-bottom: .45rem; }
+.about p, .about li { font-size: .9rem; color: var(--ink-2); }
+.about ol { padding-left: 1.1rem; }
+.lines { display: flex; flex-wrap: wrap; gap: .5rem; padding: 1rem 0; border-bottom: 1px solid var(--rule); font-size: .82rem; color: var(--ink-2); align-items: center; }
+.lines .tag { font: 500 .78rem "IBM Plex Mono", monospace; border: 1px solid var(--rule); background: var(--card); padding: .25rem .5rem; border-radius: 4px; color: var(--ink); text-decoration: none; }
+.lines .tag b { color: var(--accent); font-weight: 500; }
+
+/* --- Ask --- */
+section.ask { margin: 1.75rem 0 1rem; background: var(--card); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow); padding: 1rem 1.1rem; }
+.ask textarea { width: 100%; border: none; resize: vertical; min-height: 3.2rem; background: transparent; color: var(--ink); font: 400 1.1rem/1.4 "Source Serif 4", Georgia, serif; outline: none; }
+.ask-row { display: flex; gap: .5rem; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-top: .5rem; }
+.chips { display: flex; gap: .4rem; flex-wrap: wrap; }
+.chip { font: 500 .78rem Inter, sans-serif; border: 1px solid var(--rule); background: var(--paper); color: var(--ink-2); padding: .35rem .65rem; border-radius: 999px; cursor: pointer; }
+.chip:hover { border-color: var(--ink-3); color: var(--ink); }
+.chip.vague { border-style: dashed; }
+button.go { font: 600 .82rem Inter, sans-serif; letter-spacing: .02em; background: var(--ink); color: var(--paper); border: none; padding: .6rem 1.1rem; border-radius: 6px; cursor: pointer; }
+button.go:disabled { opacity: .35; cursor: default; }
+button.ghost { font: 500 .78rem Inter, sans-serif; background: none; border: 1px solid var(--rule); color: var(--ink-2); padding: .45rem .8rem; border-radius: 6px; cursor: pointer; }
+.thread { display: grid; gap: .6rem; margin-bottom: .75rem; }
+.bubble { padding: .7rem .9rem; border-radius: 8px; font-size: .95rem; max-width: 46rem; }
+.bubble.user { background: var(--paper); border: 1px solid var(--rule); justify-self: end; }
+.bubble.clarify { background: var(--accent-soft); border-left: 3px solid var(--accent); }
+.bubble.clarify .who { font: 600 .7rem "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: .25rem; }
+
+/* --- Live board --- */
+section.board { margin: 1.25rem 0; display: none; }
+section.board.on { display: block; }
+.board-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .6rem; gap: 1rem; flex-wrap: wrap; }
+.board-head h2, .sec-h { font: 600 .72rem/1 "IBM Plex Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.clock { font: 500 .8rem "IBM Plex Mono", monospace; color: var(--ink-2); }
+.pipeline { display: grid; grid-template-columns: 1fr 1fr 3fr 1fr; gap: .6rem; align-items: start; }
+.stage { display: grid; gap: .5rem; }
+.stage-label { font: 500 .66rem "IBM Plex Mono", monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.researchers { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .5rem; }
+.lane { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: .55rem .6rem; min-height: 4.2rem; transition: border-color .3s; }
+.lane.running { border-color: var(--accent); }
+.lane.done { opacity: .9; }
+.lane h4 { font: 600 .8rem Inter, sans-serif; display: flex; align-items: center; gap: .4rem; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--neutral); flex: none; }
+.lane.running .dot { background: var(--accent); animation: pulse 1s infinite; }
+.lane.done .dot { background: var(--good); }
+@keyframes pulse { 50% { opacity: .3; } }
+.lane .task { font-size: .72rem; color: var(--ink-2); margin: .25rem 0 .3rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.steps { list-style: none; display: grid; gap: .15rem; max-height: 9.5rem; overflow-y: auto; }
+.steps li { font: 400 .68rem/1.35 "IBM Plex Mono", monospace; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.steps li b { color: var(--ink); font-weight: 500; }
+.empty-lane { font-size: .75rem; color: var(--ink-3); padding: .5rem 0; }
+
+/* --- Result --- */
+section.result { display: none; margin-top: 1.5rem; }
+section.result.on { display: block; }
+.verdict { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; border-bottom: 2px solid var(--ink); padding-bottom: .6rem; margin-bottom: 1rem; }
+.verdict h2 { font: 700 1.7rem/1.1 "Source Serif 4", Georgia, serif; }
+.verdict .meta { font: 500 .78rem "IBM Plex Mono", monospace; color: var(--ink-2); }
+.badges { display: flex; gap: .4rem; flex-wrap: wrap; }
+.badge { font: 500 .74rem "IBM Plex Mono", monospace; padding: .3rem .55rem; border-radius: 4px; border: 1px solid var(--rule); background: var(--card); }
+.badge.ok { color: var(--good-text); }
+.badge.warn { color: var(--ink); border-color: var(--warning); }
+
+/* chart */
+.chart-card { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 1rem 1.1rem .8rem; box-shadow: var(--shadow); margin-bottom: 1.25rem; position: relative; }
+.chart-card h3 { font: 600 1.05rem "Source Serif 4", Georgia, serif; }
+.chart-card .sub { font-size: .82rem; color: var(--ink-2); margin: .15rem 0 .6rem; }
+.legend { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .76rem; color: var(--ink-2); margin-bottom: .5rem; }
+.legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.lg-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.lg-tick { width: 2px; height: 12px; background: var(--ink); display: inline-block; }
+.lg-sec { width: 0; height: 12px; border-left: 2px dashed var(--ink-3); display: inline-block; }
+#chart svg { width: 100%; display: block; overflow: visible; }
+#chart text { font-family: Inter, sans-serif; }
+.row-hit { fill: transparent; cursor: default; }
+.row-hit:hover { fill: var(--paper); }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--paper); font-size: .76rem; line-height: 1.4; padding: .55rem .7rem; border-radius: 6px; max-width: 340px; opacity: 0; transition: opacity .12s; z-index: 5; }
+.tip b { font-weight: 600; }
+.no-chart { font-size: .85rem; color: var(--ink-2); padding: .5rem 0; }
+
+/* report */
+.report { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 1.4rem 1.6rem; box-shadow: var(--shadow); font: 400 1.02rem/1.6 "Source Serif 4", Georgia, serif; }
+.report h2 { font: 600 .74rem "IBM Plex Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 1.5rem 0 .55rem; }
+.report h2:first-child { margin-top: 0; }
+.report h3 { font: 600 1rem Inter, sans-serif; margin: 1rem 0 .3rem; }
+.report p, .report ul, .report ol { margin: 0 0 .75rem; }
+.report ul, .report ol { padding-left: 1.3rem; }
+.report table { width: 100%; border-collapse: collapse; font: 400 .8rem/1.4 Inter, sans-serif; margin: .5rem 0 1rem; display: block; overflow-x: auto; }
+.report th { text-align: left; font-weight: 600; border-bottom: 1px solid var(--ink); padding: .4rem .5rem; white-space: nowrap; }
+.report td { border-bottom: 1px solid var(--rule); padding: .45rem .5rem; vertical-align: top; }
+.report a.cite { font: 500 .7rem "IBM Plex Mono", monospace; text-decoration: none; background: var(--accent-soft); padding: .05rem .3rem; border-radius: 3px; white-space: nowrap; }
+.report a.cite.bad { background: none; outline: 1px dashed var(--warning); color: var(--ink-2); }
+.report a.cite.bad::after { content: " ?"; }
+.foot-note { font-size: .78rem; color: var(--ink-3); margin-top: .6rem; }
+section.ask.followup { margin-top: 1.5rem; }
+/* verdict next to "Bottom line" */
+.report h2.bl { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.pill { font: 600 .74rem Inter, sans-serif; letter-spacing: .02em; text-transform: none; padding: .28rem .65rem; border-radius: 999px; border: 1.5px solid; }
+.pill.material { color: var(--critical); border-color: var(--critical); }
+.pill.not_material { color: var(--good-text); border-color: var(--good); }
+.pill.public_not_material { color: var(--ink); border-color: var(--warning); }
+.pill.none { color: var(--ink-2); border-color: var(--rule); }
+.verdict-detail { font: 400 .85rem Inter, sans-serif; color: var(--ink-2); margin: -.2rem 0 .7rem !important; }
+/* collapsed citation groups in prose */
+.cites { position: relative; display: inline-block; vertical-align: baseline; }
+.src-btn { font: 500 .68rem "IBM Plex Mono", monospace; border: 1px solid var(--rule); background: var(--paper); color: var(--accent); padding: .05rem .4rem; border-radius: 3px; cursor: pointer; margin-left: .15rem; }
+.src-btn:hover, .cites.open .src-btn { border-color: var(--accent); }
+.cite-pop { display: none; position: absolute; z-index: 6; top: 1.6rem; left: 0; min-width: 15rem; max-width: min(24rem, 80vw); background: var(--card); border: 1px solid var(--rule); border-radius: 8px; box-shadow: var(--shadow); padding: .45rem; }
+.cites.open .cite-pop { display: grid; gap: .3rem; }
+.cite-pop a.cite { display: block; white-space: normal; }
+section.ask.followup .sec-h { display: block; margin-bottom: .5rem; }
+.error { background: var(--accent-soft); border-left: 3px solid var(--critical); padding: .8rem 1rem; border-radius: 6px; margin-top: 1rem; font-size: .9rem; }
+
+/* raw contexts drawer (context-panel.js), closed by default */
+body { margin-right: 0 !important; }
+#context-panel { transform: translateX(100%); transition: transform .25s; z-index: 20; background: var(--card) !important; color: var(--ink); box-shadow: -12px 0 30px -20px rgba(0,0,0,.4); width: min(92vw, 46rem) !important; }
+body.ctx-open #context-panel { transform: none; }
+#context-panel .ctx-head { background: var(--card) !important; color: var(--ink-3) !important; }
+.ctx-toggle { position: fixed; right: 16px; bottom: 16px; z-index: 21; }
+
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-size: .78rem; color: var(--ink-3); }
+
+@media (max-width: 760px) {
+  .about { grid-template-columns: 1fr; }
+  .pipeline { grid-template-columns: 1fr; }
+  .report { padding: 1rem; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header class="mast">
+    <span class="kicker">SEC filings · Item 404 · ISS 2026</span>
+    <h1>Related Party Radar</h1>
+    <p class="dek">Ask about any large US public company. A team of research agents reads its latest proxy statement and annual report for deals with its own insiders, and works out which of those deals cross a line.</p>
+  </header>
+
+  <div class="about">
+    <div>
+      <h3>What it explores</h3>
+      <p>Related-party transactions: business between a company and its directors, executives, 5% holders or their families. Think a director's other company selling to this one, or an executive's son on the payroll.</p>
+    </div>
+    <div>
+      <h3>Who it's for</h3>
+      <p>Shareholders deciding how to vote on directors, governance and stewardship analysts, and reporters who want the deals and the arithmetic, with every fact linked to the sentence in the filing it came from.</p>
+    </div>
+    <div>
+      <h3>How to use it</h3>
+      <ol>
+        <li>Name a company (Russell 1000) and what you want to know.</li>
+        <li>Watch the researchers work in parallel (about 2 minutes).</li>
+        <li>Read the verdict. Click any source tag to jump to that passage in the filing on sec.gov.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="lines">
+    <span>Where the lines are drawn:</span>
+    <a class="tag" href="https://www.law.cornell.edu/cfr/text/17/229.404" target="_blank" rel="noopener"><b>$120K</b> SEC Item 404(a): must disclose</a>
+    <a class="tag" href="https://www.iss-stoxx.com/file/policy/current/americas/us-voting-guidelines.pdf" target="_blank" rel="noopener"><b>$10K</b> ISS: professional services</a>
+    <a class="tag" href="https://www.iss-stoxx.com/file/policy/current/americas/us-voting-guidelines.pdf" target="_blank" rel="noopener"><b>max($1M, 2%)</b> NYSE / <b>max($200K, 5%)</b> Nasdaq: not independent</a>
+  </div>
+
+  <section class="ask">
+    <div class="thread" id="thread"></div>
+    <textarea id="q" rows="2" placeholder="e.g. Does Tesla have material related-party transactions?"></textarea>
+    <div class="ask-row">
+      <div class="chips" id="chips">
+        <button class="chip" data-q="Does Tesla have material related-party transactions with Elon Musk's other companies?">Tesla × Musk companies</button>
+        <button class="chip" data-q="Is any Apple director or executive involved in a related-party transaction, and does it matter?">Apple insiders</button>
+        <button class="chip" data-q="Do any of Meta's directors have business relationships with Meta that could affect their independence?">Meta director independence</button>
+        <button class="chip vague" data-q="Which companies have shady insider deals?" title="A vague question: the agent will ask you to narrow it">A vague one ↺</button>
+      </div>
+      <div style="display:flex; gap:.5rem">
+        <button class="ghost" id="reset" title="Start a new conversation">New question</button>
+        <button class="go" id="go">Investigate</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="board" id="board">
+    <div class="board-head">
+      <h2>Research team, live</h2>
+      <span class="clock" id="clock">0:00</span>
+    </div>
+    <div class="pipeline">
+      <div class="stage"><span class="stage-label">1 · Check</span><div id="lane-clarifier"></div></div>
+      <div class="stage"><span class="stage-label">2 · Plan</span><div id="lane-lead"></div></div>
+      <div class="stage"><span class="stage-label">3 · Research in parallel</span><div class="researchers" id="researchers"><div class="empty-lane">Researchers appear when the Lead sends them.</div></div></div>
+      <div class="stage"><span class="stage-label">4 · Write</span><div id="lane-writer"></div></div>
+    </div>
+  </section>
+
+  <section class="result" id="result">
+    <div class="verdict">
+      <div>
+        <div class="meta" id="company-meta"></div>
+        <h2 id="company-name"></h2>
+      </div>
+      <div class="badges" id="badges"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Where does each deal sit against the line?</h3>
+      <p class="sub">Each row is one disclosed transaction, on a log dollar scale. The dot is the amount, the dashed rule is SEC's $120,000 disclosure line, and the black tick is the independence line for that deal (ISS, restating the exchange's test).</p>
+      <div class="legend">
+        <span><i class="lg-dot" style="background:var(--critical)"></i>✕ Crosses independence line</span>
+        <span title="The test divides by the recipient's revenue, and the recipient is a private company that doesn't publish it"><i class="lg-dot" style="background:var(--warning)"></i>🔒 Needs private data (recipient's revenue isn't public)</span>
+        <span><i class="lg-dot" style="background:var(--good)"></i>✓ Under the line</span>
+        <span><i class="lg-dot" style="background:var(--neutral)"></i>– No dollar test</span>
+        <span><i class="lg-sec"></i>SEC $120K</span>
+        <span><i class="lg-tick"></i>Independence line</span>
+      </div>
+      <div id="chart"></div>
+      <p class="foot-note" id="chart-note"></p>
+      <div class="tip" id="tip"></div>
+    </div>
+    <article class="report" id="report"></article>
+    <p class="foot-note">Sources are SEC EDGAR filings. Source tags open the filing scrolled to the quoted sentence (Chrome, Edge, Safari). A dashed tag with “?” is a link the citation checker couldn't match to text the researchers read.</p>
+
+    <section class="ask followup">
+      <span class="sec-h">Keep digging</span>
+      <textarea id="q2" rows="2" placeholder="Ask a follow-up, e.g. “How does this compare with last year's proxy?” or “Now check Meta”"></textarea>
+      <div class="ask-row">
+        <div class="chips" id="chips2"></div>
+        <div style="display:flex; gap:.5rem">
+          <button class="ghost" id="reset2">New question</button>
+          <button class="go" id="go2">Ask follow-up</button>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <div id="err"></div>
+
+  <footer>
+    Related Party Radar reads the latest DEF 14A and 10-K from SEC EDGAR at question time, and judges amounts with code, not the model. It covers what companies disclose: transactions under $120,000, and the revenue of private counterparties, are not in the filings. Not investment or legal advice.
+  </footer>
+</main>
+
+<button class="ghost ctx-toggle" id="ctx-toggle">Agents' raw context ▸</button>
+<script src="/context-panel.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+let sessionId = null, source = null, timer = null, t0 = 0;
+const lanes = {};
+const STATUS = {
+  crossed: { color: "var(--critical)", icon: "✕", label: "Crosses" },
+  cannot_determine: { color: "var(--warning)", icon: "🔒", label: "Needs private data" },
+  not_crossed: { color: "var(--good)", icon: "✓", label: "Under" },
+  not_applicable_to_amount: { color: "var(--neutral)", icon: "–", label: "No $ test" },
+};
+
+// --- Ask ---
+$("chips").addEventListener("click", (e) => {
+  const q = e.target.closest(".chip")?.dataset.q;
+  if (q) { $("q").value = q; $("q").focus(); }
+});
+$("q").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } });
+$("go").onclick = ask;
+$("reset").onclick = () => {
+  if (sessionId) fetch("/clear?session_id=" + sessionId, { method: "POST" });
+  sessionId = null; $("thread").innerHTML = ""; $("q").placeholder = "e.g. Does Tesla have material related-party transactions?";
+  $("board").classList.remove("on"); $("result").classList.remove("on"); $("err").innerHTML = "";
+  if (window.resetContext) resetContext();
+};
+// The follow-up box under the report: same session, so the agents keep the conversation's context
+function followUp() {
+  const text = $("q2").value.trim();
+  if (!text || $("go").disabled) return;
+  $("q").value = text; $("q2").value = "";
+  ask();
+  $("board").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("go2").onclick = followUp;
+$("q2").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); followUp(); } });
+$("reset2").onclick = () => { $("reset").click(); window.scrollTo({ top: 0, behavior: "smooth" }); $("q").focus(); };
+$("chips2").addEventListener("click", (e) => { const q = e.target.closest(".chip")?.dataset.q; if (q) { $("q2").value = q; $("q2").focus(); } });
+function suggestFollowUps(company) {
+  const name = company?.name || "this company";
+  const ideas = [
+    [`Compare with last year's proxy`, `How do ${name}'s related-party transactions this year compare with last year's proxy?`],
+    [`Which directors are affected?`, `Which ${name} directors are connected to these transactions, and did the board still find them independent?`],
+    [`Check another company`, `Now run the same check on Meta`],
+  ];
+  $("chips2").innerHTML = ideas.map(([label, q]) => `<button class="chip" data-q="${esc(q)}">${esc(label)}</button>`).join("");
+}
+
+$("ctx-toggle").onclick = () => {
+  document.body.classList.toggle("ctx-open");
+  $("ctx-toggle").textContent = document.body.classList.contains("ctx-open") ? "Close raw context ◂" : "Agents' raw context ▸";
+};
+
+function bubble(cls, html) {
+  const d = document.createElement("div");
+  d.className = "bubble " + cls; d.innerHTML = html; $("thread").appendChild(d);
+}
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function ask() {
+  const message = $("q").value.trim();
+  if (!message || $("go").disabled) return;
+  bubble("user", esc(message));
+  $("q").value = "";
+  $("go").disabled = true; $("err").innerHTML = "";
+  $("result").classList.remove("on");
+  resetBoard();
+  const params = new URLSearchParams({ message });
+  if (sessionId) params.set("session_id", sessionId);
+  source = new EventSource("/run?" + params);
+  source.onmessage = (m) => handle(JSON.parse(m.data));
+  source.onerror = () => { finish(); showError("Lost the connection to the server."); };
+}
+
+function finish() {
+  if (source) source.close();
+  source = null; clearInterval(timer); $("go").disabled = false;
+  Object.values(lanes).forEach((l) => { if (l.el.classList.contains("running")) setState(l, "done"); });
+}
+function showError(msg) { $("err").innerHTML = `<div class="error"><b>Something went wrong.</b> ${esc(msg)}</div>`; }
+
+// --- Live board ---
+function resetBoard() {
+  for (const k in lanes) delete lanes[k];
+  ["lane-clarifier", "lane-lead", "lane-writer"].forEach((id) => ($(id).innerHTML = ""));
+  $("researchers").innerHTML = '<div class="empty-lane">Researchers appear when the Lead sends them.</div>';
+  $("board").classList.add("on");
+  t0 = Date.now(); clearInterval(timer);
+  timer = setInterval(() => { const s = Math.floor((Date.now() - t0) / 1000); $("clock").textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }, 500);
+}
+const ROLES = { Clarifier: "checks the question", Lead: "plans and checks for gaps", Writer: "writes the cited report" };
+function lane(agent) {
+  if (lanes[agent]) return lanes[agent];
+  const el = document.createElement("div");
+  el.className = "lane";
+  el.innerHTML = `<h4><i class="dot"></i>${esc(agent)}</h4><div class="task">${ROLES[agent] || ""}</div><ul class="steps"></ul>`;
+  if (agent.startsWith("Researcher")) {
+    const box = $("researchers"); box.querySelector(".empty-lane")?.remove(); box.appendChild(el);
+  } else {
+    $("lane-" + agent.toLowerCase())?.appendChild(el);
+  }
+  return (lanes[agent] = { el, steps: el.querySelector(".steps"), task: el.querySelector(".task") });
+}
+function setState(l, s) { l.el.classList.remove("running", "done"); l.el.classList.add(s); }
+function step(agent, html) {
+  const l = lane(agent); const li = document.createElement("li"); li.innerHTML = html;
+  l.steps.appendChild(li); l.steps.scrollTop = l.steps.scrollHeight;
+}
+const money = (n) => n == null ? "?" : (n > 1000 && (n - 1) % 1000 === 0) ? "> " + money(n - 1) : n >= 1e9 ? `$${(n / 1e9).toFixed(n >= 1e10 ? 0 : 1)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}K` : `$${n}`;
+function describe(name, a) {
+  switch (name) {
+    case "find_company": return `<b>find</b> ${esc(a.query)}`;
+    case "list_filings": return `<b>filings</b> ${esc(a.form)}`;
+    case "search_filing": return `<b>search</b> ${esc((a.query || "").slice(0, 60))}`;
+    case "read_paragraphs": return `<b>read</b> ¶${a.start}–${(a.start || 0) + (a.count || 6) - 1}`;
+    case "get_financials": return `<b>XBRL</b> revenue ${esc(a.ticker)}`;
+    case "assess_materiality": return `<b>assess</b> ${money(a.amount_usd)} ${esc(a.transaction)}`;
+    case "get_materiality_standards": return `<b>standards</b> 404 / ISS`;
+    case "research": return `<b>→ send</b> ${esc((a.task || "").slice(0, 70))}`;
+    default: return `<b>${esc(name)}</b>`;
+  }
+}
+
+function handle(e) {
+  switch (e.type) {
+    case "start": sessionId = e.session_id; break;
+    case "activity": {
+      const l = lane(e.agent);
+      if (e.text === "started") setState(l, "running");
+      else if (e.text.startsWith("finished")) setState(l, "done");
+      break;
+    }
+    case "tool":
+      step(e.agent, describe(e.name, e.args));
+      if (e.name === "research") { /* the researcher's lane gets its task */ }
+      break;
+    case "plan": step("Clarifier", `<b>ok</b> ${esc(e.ticker)}`); break;
+    case "context":
+      if (window.showContext && sessionId) showContext(sessionId);
+      break;
+    case "done": finish(); done(e); break;
+    case "error": finish(); showError(e.message); break;
+  }
+  // a researcher's task: the Lead's research call, matched in order
+  if (e.type === "activity" && e.agent.startsWith("Researcher") && e.text === "started") pendingTask(e.agent);
+}
+// research() calls are only reported when they end, so the page shows the task from the researcher's context
+async function pendingTask(agent) {
+  setTimeout(async () => {
+    try {
+      const r = await fetch(`/context?session_id=${sessionId}&after=0`).then((r) => r.json());
+      const msg = r.events.find((x) => x.agent === agent && x.type === "message" && x.message.role === "user");
+      const task = msg?.message.content.match(/Task: (.*)/)?.[1];
+      if (task) lanes[agent].task.textContent = task;
+    } catch {}
+  }, 800);
+}
+
+// --- Result ---
+function done(e) {
+  if (e.kind === "clarify") {
+    bubble("clarify", `<span class="who">Before we dig in</span>${esc(e.markdown)}`);
+    $("q").placeholder = "Your answer…"; $("q").focus();
+    $("board").classList.remove("on");
+    return;
+  }
+  const c = e.company || {};
+  $("company-name").textContent = c.name || e.ticker;
+  $("company-meta").textContent = [c.ticker, c.exchange, c.russell1000 === "yes" ? "Russell 1000" : null, `${Object.keys(lanes).filter((a) => a.startsWith("Researcher")).length} researchers`].filter(Boolean).join(" · ");
+  const ct = e.citations || { total: 0, verified: 0, links: [] };
+  const crossed = (e.assessments || []).filter((a) => worst(a) === "crossed").length;
+  $("badges").innerHTML = `
+    <span class="badge">${(e.assessments || []).length} transactions assessed</span>
+    <span class="badge ${crossed ? "warn" : "ok"}">${crossed} cross an independence line</span>
+    <span class="badge ${ct.verified === ct.total ? "ok" : "warn"}">${ct.verified}/${ct.total} citations verified</span>`;
+  lastVerdict = e.verdict || null;
+  renderReport(e.markdown, ct.links);
+  drawChart(e.assessments || []);
+  suggestFollowUps(c);
+  $("result").classList.add("on");
+  $("result").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderReport(md, links) {
+  const bad = new Set(links.filter((l) => !["passage", "filing", "standard", "filing_index"].includes(l.status)).map((l) => l.url));
+  const html = DOMPurify.sanitize(marked.parse(md || ""), { ADD_ATTR: ["target"] });
+  $("report").innerHTML = html;
+  $("report").querySelectorAll("a").forEach((a) => {
+    a.target = "_blank"; a.rel = "noopener";
+    if (a.href.includes("sec.gov/Archives")) {
+      a.classList.add("cite");
+      if (bad.has(a.getAttribute("href"))) { a.classList.add("bad"); a.title = "Not matched to text the researchers read"; }
+    }
+  });
+  groupCitations($("report"));
+  showVerdict($("report"));
+}
+
+// "## Bottom line · Not material" -> a heading with a verdict pill, and the reason under it
+let lastVerdict = null;
+function showVerdict(root) {
+  const h = [...root.querySelectorAll("h2")].find((x) => x.textContent.startsWith("Bottom line"));
+  if (!h) return;
+  const label = h.textContent.split("·")[1]?.trim();
+  h.classList.add("bl");
+  h.textContent = "Bottom line";
+  if (!label || !lastVerdict) return;
+  const pill = document.createElement("span");
+  pill.className = "pill " + lastVerdict.level;
+  pill.textContent = label;
+  pill.title = "Material = crosses an ISS / NYSE / Nasdaq independence line. Every deal over $120,000 must be disclosed under SEC Item 404, which alone doesn't make it material.";
+  h.appendChild(pill);
+  const d = document.createElement("p");
+  d.className = "verdict-detail"; d.textContent = lastVerdict.detail;
+  h.after(d);
+}
+
+// Runs of source links in prose collapse into one "N sources" button; tables keep their single tag
+function groupCitations(root) {
+  const isGap = (n) => n && n.nodeType === 3 && !n.textContent.trim();
+  root.querySelectorAll("p, li").forEach((block) => {
+    const links = [...block.querySelectorAll(":scope > a.cite, :scope > strong > a.cite")];
+    const runs = [];
+    links.forEach((a) => {
+      const last = runs.at(-1);
+      let prev = a.previousSibling;
+      while (isGap(prev) || (prev && prev.nodeType === 3 && /^[\s()\[\],;]*$/.test(prev.textContent))) prev = prev.previousSibling;
+      if (last && prev === last.at(-1)) last.push(a); else runs.push([a]);
+    });
+    runs.forEach((run) => {
+      const wrap = document.createElement("span");
+      wrap.className = "cites";
+      const btn = document.createElement("button");
+      btn.className = "src-btn"; btn.type = "button";
+      btn.textContent = `${run.length} source${run.length > 1 ? "s" : ""} ▾`;
+      const pop = document.createElement("span");
+      pop.className = "cite-pop";
+      run[0].before(wrap);
+      // drop the punctuation-only text between grouped links
+      run.slice(1).forEach((a) => { let n = a.previousSibling; while (n && n !== run[0] && n.nodeType === 3) { const p = n.previousSibling; n.remove(); n = p; } });
+      run.forEach((a) => pop.appendChild(a));
+      wrap.append(btn, pop);
+      btn.onclick = (ev) => { ev.stopPropagation(); const open = wrap.classList.contains("open"); document.querySelectorAll(".cites.open").forEach((c) => c.classList.remove("open")); if (!open) wrap.classList.add("open"); };
+    });
+    // tidy "( )" left around a moved group
+    block.innerHTML = block.innerHTML.replace(/\(\s*(<span class="cites")/g, "$1").replace(/(<\/span><\/span>)\s*\)/g, "$1");
+  });
+  // re-bind after innerHTML rewrite
+  root.querySelectorAll(".cites").forEach((wrap) => {
+    wrap.querySelector(".src-btn").onclick = (ev) => { ev.stopPropagation(); const open = wrap.classList.contains("open"); document.querySelectorAll(".cites.open").forEach((c) => c.classList.remove("open")); if (!open) wrap.classList.add("open"); };
+  });
+}
+document.addEventListener("click", (e) => { if (!e.target.closest(".cites")) document.querySelectorAll(".cites.open").forEach((c) => c.classList.remove("open")); });
+
+// The independence test for a deal, else its SEC result
+function indep(a) { return a.results.find((r) => r.standard !== "sec_item_404a"); }
+function worst(a) { const r = indep(a); return r ? r.status : "not_applicable_to_amount"; }
+
+function drawChart(rows) {
+  const box = $("chart");
+  const noAmount = rows.filter((a) => a.amount_usd == null).length;
+  rows = rows.filter((a) => a.amount_usd != null);
+  $("chart-note").textContent = noAmount ? `${noAmount} relationship${noAmount > 1 ? "s" : ""} with no disclosed dollar amount ${noAmount > 1 ? "are" : "is"} listed in the table below.` : "";
+  if (!rows.length) { box.innerHTML = '<p class="no-chart">No transaction with a dollar amount was found, so there is nothing to plot. See the report for what the filings say.</p>'; return; }
+  const order = { crossed: 0, cannot_determine: 1, not_crossed: 2, not_applicable_to_amount: 3 };
+  rows = [...rows].sort((a, b) => order[worst(a)] - order[worst(b)] || b.amount_usd - a.amount_usd);
+  const W = box.clientWidth || 800, narrow = W < 560;
+  const labelW = narrow ? 0 : Math.min(260, W * 0.30), rowH = narrow ? 52 : 34, top = 8, bottom = 26, right = 140;
+  const H = top + rows.length * rowH + bottom;
+  const vals = rows.flatMap((a) => [a.amount_usd, ...(a.results.map((r) => r.threshold_usd).filter(Boolean))]);
+  const lo = Math.pow(10, Math.floor(Math.log10(Math.min(10000, ...vals))));
+  const hi = Math.pow(10, Math.ceil(Math.log10(Math.max(...vals) * 1.2)));
+  const x0 = labelW + 8, x1 = W - right;
+  const x = (v) => x0 + (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * (x1 - x0);
+  let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Transactions against materiality lines">`;
+  for (let d = lo; d <= hi; d *= 10) {
+    s += `<line x1="${x(d)}" x2="${x(d)}" y1="${top}" y2="${H - bottom}" stroke="var(--rule)" stroke-width="1"/>`;
+    s += `<text x="${x(d)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--ink-3)">${money(d)}</text>`;
+  }
+  s += `<line x1="${x(120000)}" x2="${x(120000)}" y1="${top}" y2="${H - bottom}" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+  rows.forEach((a, i) => {
+    const yTop = top + i * rowH, cy = yTop + (narrow ? rowH - 16 : rowH / 2);
+    const st = STATUS[worst(a)], r = indep(a);
+    s += `<rect class="row-hit" data-i="${i}" x="0" y="${yTop}" width="${W}" height="${rowH}" rx="4"/>`;
+    const max = narrow ? 58 : Math.floor(labelW / 6.6);
+    const label = a.transaction.length > max ? a.transaction.slice(0, max - 1).trimEnd() + "…" : a.transaction;
+    s += narrow
+      ? `<text x="0" y="${yTop + 14}" font-size="12" fill="var(--ink)" pointer-events="none">${esc(label)}</text>`
+      : `<text x="${labelW}" y="${cy + 4}" text-anchor="end" font-size="12" fill="var(--ink)" pointer-events="none">${esc(label)}</text>`;
+    s += `<line x1="${x0}" x2="${x(a.amount_usd)}" y1="${cy}" y2="${cy}" stroke="var(--axis)" stroke-width="2" pointer-events="none"/>`;
+    if (r && r.threshold_usd) s += `<line x1="${x(r.threshold_usd)}" x2="${x(r.threshold_usd)}" y1="${cy - 9}" y2="${cy + 9}" stroke="var(--ink)" stroke-width="2" pointer-events="none"/>`;
+    s += `<circle cx="${x(a.amount_usd)}" cy="${cy}" r="6" fill="${st.color}" stroke="var(--card)" stroke-width="2" pointer-events="none"/>`;
+    s += `<text x="${W - right + 10}" y="${cy + 4}" font-size="11" fill="var(--ink-2)" pointer-events="none">${st.icon} ${st.label}</text>`;
+  });
+  box.innerHTML = s + "</svg>";
+  const tip = $("tip"), card = box.parentElement;
+  box.querySelectorAll(".row-hit").forEach((el) => {
+    el.addEventListener("mousemove", (ev) => {
+      const a = rows[+el.dataset.i];
+      tip.innerHTML = `<b>${esc(a.transaction)}</b><br>${esc(a.related_person)}<br>Amount: <b>${money(a.amount_usd)}</b> · ${esc(a.direction === "company_pays" ? "company pays" : "company receives")}<br>` +
+        a.results.map((r) => `${STATUS[r.status]?.icon || ""} ${esc(r.why)}`).join("<br>");
+      const rc = card.getBoundingClientRect();
+      tip.style.left = Math.min(ev.clientX - rc.left + 14, rc.width - 350) + "px";
+      tip.style.top = ev.clientY - rc.top + 14 + "px";
+      tip.style.opacity = 1;
+    });
+    el.addEventListener("mouseleave", () => (tip.style.opacity = 0));
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "built": "2026-11-10",
+  "sec_source": "https://www.sec.gov/files/company_tickers_exchange.json",
+  "russell1000_source": null,
+  "russell1000_as_of": null,
+  "companies": 7662,
+  "russell1000_members_matched": 0,
+  "russell1000_tickers_in_file": null
+}
