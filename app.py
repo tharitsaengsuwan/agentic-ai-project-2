@@ -43,8 +43,10 @@ RESEARCHER_MODEL = LitellmModel(model="vertex_ai/gemini-3.5-flash-lite", api_key
 SETTINGS = ModelSettings(extra_args={"vertex_location": "global", "timeout": 60, "num_retries": 1})
 
 MAX_RESEARCHERS = 6  # in all, across every round. Prompts ask for restraint; code enforces it.
+CLARIFY_BUDGET_S = 30  # the check before research; it normally takes 3-5 s
 RESEARCH_BUDGET_S = 120  # graders wait 5 minutes: after this, the Writer works with what's in.
-WRITER_BUDGET_S = 120  # after this, the report is assembled from the findings without the Writer.
+# Worst case: 30 + 120 + 100 = 250 s, under the graders' 5 minutes with room for a cold start.
+WRITER_BUDGET_S = 100  # after this, the report is assembled from the findings without the Writer.
 TOOL_RESULT_CHARS = 6000  # how much of a tool result /chat returns
 
 
@@ -696,7 +698,9 @@ async def answer(session: Session, message: str, emit) -> dict:
     session.history.append({"role": "user", "content": message})
 
     # 1. Clarify: is there a company, and is this the kind of question we answer?
-    decision = (await Runner.run(clarifier, _transcript(session.history), context=state, hooks=hooks, max_turns=5)).final_output
+    decision = (await asyncio.wait_for(
+        Runner.run(clarifier, _transcript(session.history), context=state, hooks=hooks, max_turns=5), CLARIFY_BUDGET_S
+    )).final_output
     if not decision.ready:
         session.history.append({"role": "assistant", "content": decision.question_to_user})
         return {"kind": "clarify", "markdown": decision.question_to_user, "tool_calls": calls}
