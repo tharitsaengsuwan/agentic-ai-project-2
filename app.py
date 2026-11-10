@@ -298,7 +298,8 @@ async def assess_materiality(
         result["results"] = [r for r in result["results"] if r["standard"] == "sec_item_404a"] + [{
             "standard": "iss_current_only", "threshold_usd": None, "status": "not_applicable_to_amount",
             "why": "The related person is no longer an insider. ISS's tests ask whether a director currently provides "
-                   "services or currently has a material relationship, so this past deal is disclosed but not tested."}]
+                   "services or currently has a material relationship, so the deal is disclosed but not tested for anyone's "
+                   "independence (it can still be ongoing: only the insider is former)."}]
     source_id = source.strip("[] ")
     source_url = ctx.context.cites.get(source_id, {}).get("url", "")
     result.update(ticker=ticker, transaction=transaction, related_person=related_person, source=source_id, amount_note=amount_note, relationship_note=relationship_note, insider_role=insider_role,

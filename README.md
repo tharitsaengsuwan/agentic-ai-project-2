@@ -108,68 +108,68 @@ and `data/universe_meta.json`. Download the IWB holdings CSV from the
 
 ## Sample queries
 
-Each one is also a button on the page. Expected answers were checked by hand against the filing
-text. The "no tools" column is `vertex_ai/gemini-3.5-flash` with no system prompt and no tools,
-asked the same question (run 2026-11-10).
+Each query is also a button on the page. For each one:
+- **Expected answer:** checked by hand against the filing text.
+- **Source:** the files and API endpoints the answer comes from.
+- **No tools vs. agent:** a side-by-side summary. Both answers come from the same model, `vertex_ai/gemini-3.5-flash`. The no-tools answer is a single call with no system prompt and no tools; the agent's is `POST /chat`. Both were run on 2026-11-10.
+- **Full answers:** both answers, word for word, are in [docs/samples/](docs/samples/).
+
+How the agent reaches every source: it looks up the company's filings with `GET https://data.sec.gov/submissions/CIK##########.json`, reads the filing HTML from `https://www.sec.gov/Archives/edgar/data/…`, and gets revenue from `GET https://data.sec.gov/api/xbrl/companyfacts/CIK##########.json`.
 
 ### 1. `Do any of Meta's directors have business relationships with Meta that could affect their independence?`
 
-**Expected:** Director **Hock E. Tan** is CEO of **Broadcom**. Meta paid Broadcom **about $2.3 billion in
-2025** for components and engineering services. The recipient is Broadcom (FY2025 revenue
-$63,887,000,000), so the deal is **3.6%** of its revenue: **under** the Nasdaq/ISS line that applies to
-Meta (greater of $200K or 5% = $3.19B), but it **would cross** the NYSE line (2% = $1.28B). The board
-found Tan independent. Also disclosed: **John Hegeman**, an immediate family member of an executive
-officer, was employed as Chief Revenue Officer, with about **$17.5M** in 2025 compensation (Item 404
-disclosure; no ISS dollar test). Director **Robert Kimmitt** is senior international counsel at
-**WilmerHale**, which does legal work for Meta. The filing gives no dollar figure, only *"less than 4%
-of WilmerHale's total revenue"*, so ISS's $10,000 professional-services test can't be run from the filing.
-**Verdict: Not material on public data.**
-**Source:** Meta DEF 14A filed 2026-04-16, "Related Party Transactions" and "Director Independence"
-(`https://www.sec.gov/Archives/edgar/data/1326801/000162828026025532/meta-20260416.htm`). Broadcom
-revenue from XBRL company facts (`data.sec.gov/api/xbrl/companyfacts/CIK0001730168.json`, 10-K 0001730168-25-000121).
+**Expected answer: Not material on public data.**
+- **Broadcom.** Director **Hock E. Tan** is CEO of **Broadcom**, and Meta paid Broadcom **about $2.3 billion in 2025**. Broadcom is the recipient, and its FY2025 revenue was $63,887,000,000, so the deal is **3.6%** of Broadcom's revenue.
+  - Meta is listed on Nasdaq. Its line is the greater of $200K or 5% = $3.19B, so the deal is **under** it.
+  - On **NYSE** the line would be 2% = $1.28B, so the same deal **would cross** it.
+- **John Hegeman**, an immediate family member of an executive officer, was employed as Chief Revenue Officer, with about **$17.5M** of 2025 compensation. That's an Item 404 disclosure with no ISS dollar test.
+- **WilmerHale.** Director **Robert Kimmitt** is senior international counsel at WilmerHale, which does legal work for Meta. The filing gives no dollar figure, only *"less than 4% of WilmerHale's total revenue"*, so the amount isn't disclosed and the test needs private data.
+
+**Source:**
+- Meta DEF 14A filed 2026-04-16, sections "Related Party Transactions" (¶201–205) and "Director Independence" (¶170–171): `https://www.sec.gov/Archives/edgar/data/1326801/000162828026025532/meta-20260416.htm`
+- Broadcom revenue: `https://data.sec.gov/api/xbrl/companyfacts/CIK0001730168.json` (10-K 0001730168-25-000121)
 
 | No tools, no system prompt | Related Party Radar |
 |---|---|
-| Names Hock Tan and Broadcom, but gives no figure: *"Meta's multi-million or even multi-billion dollar purchases do not cross this 5% threshold."* It never checks the number. It adds Marc Andreessen and a16z portfolio companies (not in the filing's related-party section) and misses John Hegeman entirely. | **Not material on public data.** The bottom line leads with *"the $2,300,000,000 Broadcom purchase would cross the NYSE independence threshold"*. The table shows Broadcom at 3.60% of Broadcom's revenue (under Meta's Nasdaq line of $3,194,350,000), Hegeman at $17,500,000 (Item 404, no dollar test), Kimmitt/WilmerHale as *"Not disclosed (less than 4% of WilmerHale's total revenue)"*, and Zuckerberg's $2.2M charter arrangement as *needs private data*. 36/36 citations verified, ~80 s. |
+| Names Hock Tan and Broadcom but gives **no figure**: *"Meta's multi-million or even multi-billion dollar purchases do not cross this 5% threshold."* It never checks the number, so it can't see that the deal would fail on NYSE. It adds Marc Andreessen and a16z portfolio companies, which aren't in the filing's related-party section, and **misses John Hegeman** entirely. | **Not material on public data.** Broadcom: $2,300,000,000 is **3.60%** of Broadcom's revenue, under Meta's Nasdaq line of $3,194,350,000. The report notes it **would cross the NYSE line** ($1,277,740,000). Hegeman: $17,500,000, Item 404, no dollar test. Kimmitt/WilmerHale: *"Not disclosed (less than 4% of WilmerHale's total revenue)"*, needs private data. Zuckerberg's $2.2M aircraft arrangement: needs private data. 86 s, 49 tool calls, 6 researchers, 40 source links. [Full answers →](docs/samples/meta.md) |
 
 ### 2. `Is any Apple director or executive involved in a related-party transaction, and does it matter?`
 
-**Expected:** Yes, one. A **family member of Apple's former Chief Operating Officer** is employed by Apple
-and received **total compensation in excess of $120,000** from the start of fiscal 2025 through the
-proxy date. It is disclosable under Item 404. It isn't a dollar-tested independence issue, because
-it's an employee's relative, not a payment to a director's firm. Apple also says no director had a
-direct or indirect material interest in its commercial or charitable relationships with directors'
-other organizations. **Verdict: Not material.**
-**Source:** Apple DEF 14A filed 2026-01-08, "Related Party Policy and Transactions"
-(`https://www.sec.gov/Archives/edgar/data/320193/000130817926000008/aapl014016-def14a.htm`).
+**Expected answer: Not material.**
+- One related-party transaction is disclosed. A **family member of Apple's former Chief Operating Officer** is employed by Apple and received **total compensation in excess of $120,000** for fiscal 2025 through the proxy date.
+- It must be disclosed under Item 404.
+- No independence test applies. It's a relative's employment, not a payment to a director's firm, and the officer has left.
+- Apple also describes ordinary commercial and charitable relationships with organizations where its directors serve. It says no director had a material interest in them, and it gives no amounts.
+
+**Source:** Apple DEF 14A filed 2026-01-08, "Related Party Policy and Transactions" (¶112–113): `https://www.sec.gov/Archives/edgar/data/320193/000130817926000008/aapl014016-def14a.htm`
 
 | No tools, no system prompt | Related Party Radar |
 |---|---|
-| **Wrong:** *"no Apple director or executive officer is currently involved in a material related-party transaction that requires disclosure."* Then it discusses Bob Iger leaving the board in 2019. | **Not material.** Finds the former COO's family member: "More than $120,000", Item 404 disclosure required, no ISS dollar test. Reports the board's "no material interest" statement on directors' other organizations. 26/26 citations verified, ~70 s. |
+| **Wrong.** It says *"no Apple director or executive officer is currently involved in a material related-party transaction that requires disclosure"*, then discusses Bob Iger leaving Apple's board in 2019. | **Not material.** Finds the former COO's family member at **"More than $120,000"**: Item 404 disclosure required, not independence-tested because the insider has left. Lists the vague amount and private counterparties under "Limits of public data". 50 s, 30 tool calls, 5 researchers, 11 source links. [Full answers →](docs/samples/apple.md) |
 
 ### 3. `Does Tesla have material related-party transactions with Elon Musk's other companies?`
 
-**Expected:** Yes, many, all disclosable under Item 404. From the 2026 proxy: Tesla recognized about
-**$143.3M** of revenue from **SpaceX** in 2025 (mostly vehicle sales) and about **$430.1M** from **xAI**
-(mostly Megapack). Where **Tesla is the recipient**, the denominator is Tesla's 2025 revenue of
-$94,827,000,000: 0.15% and 0.45%, far **under** the Nasdaq 5% line. SpaceX listed in June 2026 (SPCX)
-and has no 10-K yet, but its nine-month 2026 revenue ($27,083,000,000) is a floor on its annual revenue.
-That proves Tesla's **$11.4M payment to SpaceX** is under the line, while the **$2B** xAI/SpaceX share
-investment (January 2026) stays open until SpaceX's first 10-K. Tesla's payments to X (about $3.3M of
-advertising), xAI, The Boring Company and Musk's security firm go to **private** companies, so those
-tests need private data. **Verdict: Not material on public data.** Also: JB Straubel's Redwood Materials, and a son-in-law of director Jack
-Hartung employed at about $150,000.
-**Source:** Tesla DEF 14A filed 2026-10-19, "Related Person Transactions"
-(`https://www.sec.gov/Archives/edgar/data/1318605/000110465926116700/tm267596-1_def14a.htm`), and
-Tesla 10-K for FY2025, related party note (`…/000162828026003952/tsla-20251231.htm`).
+**Expected answer: Not material on public data.** Tesla has many deals with Musk's companies, and all of them must be disclosed under Item 404.
+- **Where Tesla receives the money**, the line is set by Tesla's 2025 revenue of $94,827,000,000. The deals are tiny next to it, **far under** Nasdaq's 5% line:
+  - **SpaceX:** about **$143.3M** of revenue (0.15%).
+  - **xAI:** about **$430.1M**, mostly Megapacks (0.45%).
+- **Tesla's $11.4M payment to SpaceX** is provably **under** the line. SpaceX listed in June 2026 (SPCX) and hasn't filed a 10-K yet, but its nine-month 2026 revenue of $27,083,000,000 is a floor on its annual revenue.
+- **These need private data:**
+  - the **$2B** xAI/SpaceX share investment (January 2026), until SpaceX's first 10-K shows a full year of revenue;
+  - Tesla's payments to private companies: X (about $3.3M of advertising), xAI, The Boring Company and Musk's security firm.
+
+The question is about Musk's companies only. Other deals in the same proxy, like JB Straubel's Redwood Materials and director Jack Hartung's son-in-law, are out of scope.
+
+**Source:**
+- Tesla DEF 14A filed 2026-10-19, "Related Person Transactions" (¶361–366): `https://www.sec.gov/Archives/edgar/data/1318605/000110465926116700/tm267596-1_def14a.htm`
+- Tesla revenue: `https://data.sec.gov/api/xbrl/companyfacts/CIK0001318605.json`
+- SpaceX year-to-date revenue: `https://data.sec.gov/api/xbrl/companyfacts/CIK0001181412.json` (10-Q filed 2026-10-22)
 
 | No tools, no system prompt | Related Party Radar |
 |---|---|
-| Describes the relationships in general and gives stale numbers: *"In 2023, Tesla reported that it sold about $5.9 million in parts and services to SpaceX."* Nothing for 2025, no xAI Megapack revenue, no $2B xAI investment, and no test against any line. | **Not material on public data.** 10 transactions. SpaceX and xAI revenue to Tesla: ✓ not material (0.15% and 0.45%). SpaceX $11.4M expenses: ✓ not material, using SpaceX's year-to-date revenue as a floor. $2B investment and payments to X, xAI, Boring Co. and the security firm: *needs private data*, explained under "Limits of public data" as a disclosure limit. 32/32 citations verified, ~2.5 min. |
+| Describes the relationships in general, with **stale numbers**: *"In 2023, Tesla reported that it sold about $5.9 million in parts and services to SpaceX."* Nothing for 2025 and no Megapack revenue. On xAI it says only that *"Musk publicly floated the idea of Tesla investing $5 billion"* in mid-2024. It doesn't know about the **$2B agreement signed in January 2026**, and it tests nothing against any line. | **Not material on public data.** 9 Musk-company deals. SpaceX revenue $143,300,000 and xAI revenue $430,100,000: ✓ not material (0.15% and 0.45% of Tesla's revenue). SpaceX expenses $11,400,000: ✓ not material, using SpaceX's year-to-date revenue as a floor. The $2B investment and payments to X, xAI, The Boring Company and the security firm: needs private data, explained as a disclosure limit. 63 s, 33 tool calls, 3 researchers, 47 source links. [Full answers →](docs/samples/tesla.md) |
 
-**A vague one, to see clarification:** `Which companies have shady insider deals?` gets *"Which
-company would you like us to investigate … for example Tesla (TSLA), Meta (META), or Oracle (ORCL)?"*.
-Answering `Tesla` in the same session runs the full research.
+**A vague one, to see clarification:** `Which companies have shady insider deals?` gets back *"Which company would you like us to investigate … for example Tesla (TSLA), Meta (META), or Oracle (ORCL)?"*. Answering `Tesla` in the same session runs the full research.
 
 ## Run it
 
@@ -219,6 +219,7 @@ static/
   context-panel.js  the raw-context drawer
 scripts/
   build_universe.py the offline build of data/universe.csv
+docs/samples/       each sample query's full no-tools answer next to the agent's full answer
 data/
   universe.csv      listed SEC filers: ticker, CIK, name, exchange, Russell 1000 flag
   universe_meta.json  when and from what it was built
