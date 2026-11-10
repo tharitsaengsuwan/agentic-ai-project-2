@@ -175,6 +175,54 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
   .pipeline { grid-template-columns: 1fr; }
   .report { padding: 1rem; }
 }
+
+/* --- Explainer: how the lines are drawn --- */
+:root { --nyse: #2a78d6; --nasdaq: #eb6834; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --nyse: #3987e5; --nasdaq: #d95926; } }
+:root[data-theme="dark"] { --nyse: #3987e5; --nasdaq: #d95926; }
+.info-btn { font: 600 .78rem Inter, sans-serif; color: var(--paper); background: var(--accent); border: none; padding: .3rem .7rem; border-radius: 999px; cursor: pointer; }
+.info-btn:hover { filter: brightness(1.1); }
+dialog#explainer { width: min(880px, calc(100vw - 32px)); max-height: calc(100vh - 32px); margin: auto; border: 1px solid var(--rule); border-radius: 12px; background: var(--card); color: var(--ink); padding: 0; box-shadow: 0 30px 80px -30px rgba(0,0,0,.5); }
+dialog#explainer::backdrop { background: rgba(11,11,11,.45); }
+.ex-head { position: sticky; top: 0; z-index: 2; background: var(--card); display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.3rem .8rem; border-bottom: 1px solid var(--rule); }
+.ex-head h2 { font: 700 1.35rem "Source Serif 4", Georgia, serif; }
+.ex-body { padding: 1.1rem 1.3rem 1.5rem; display: grid; gap: 1.6rem; }
+.ex-body h3 { font: 600 .72rem "IBM Plex Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: .6rem; }
+.ex-body p.lead { font: 400 1rem/1.5 "Source Serif 4", Georgia, serif; color: var(--ink-2); }
+.flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: .5rem; align-items: stretch; }
+.flow .arrow { align-self: center; color: var(--ink-3); font-size: 1.2rem; }
+.step { border: 1px solid var(--rule); border-radius: 10px; padding: .8rem .85rem; background: var(--paper); display: grid; gap: .35rem; align-content: start; }
+.step .n { font: 600 .68rem "IBM Plex Mono", monospace; color: var(--ink-3); letter-spacing: .08em; }
+.step .q { font: 600 .95rem Inter, sans-serif; }
+.step .big { font: 700 1.35rem "Source Serif 4", Georgia, serif; color: var(--accent); }
+.step .a { font-size: .82rem; color: var(--ink-2); line-height: 1.45; }
+.step .eg { font-size: .75rem; color: var(--ink-3); border-top: 1px dashed var(--rule); padding-top: .35rem; }
+.tryit { border: 1px solid var(--rule); border-radius: 10px; padding: .9rem 1rem; display: grid; gap: .8rem; }
+.controls { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem 1.4rem; }
+.ctl label { display: flex; justify-content: space-between; font: 500 .8rem Inter, sans-serif; color: var(--ink-2); margin-bottom: .25rem; }
+.ctl label b { font: 600 .85rem "IBM Plex Mono", monospace; color: var(--ink); }
+.ctl input[type=range] { width: 100%; accent-color: var(--accent); }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.seg button { font: 500 .78rem Inter, sans-serif; background: none; border: none; padding: .35rem .7rem; color: var(--ink-2); cursor: pointer; }
+.seg button.on { background: var(--ink); color: var(--paper); }
+.presets { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; font-size: .78rem; color: var(--ink-3); }
+.verdict-box { border-radius: 8px; padding: .7rem .85rem; font-size: .9rem; line-height: 1.5; background: var(--paper); border-left: 4px solid var(--neutral); }
+.verdict-box.crossed { border-left-color: var(--critical); }
+.verdict-box.under { border-left-color: var(--good); }
+.verdict-box.private { border-left-color: var(--warning); }
+.verdict-box .vt { font: 700 1rem Inter, sans-serif; display: block; margin-bottom: .15rem; }
+#ex-ruler svg, #ex-curve svg { width: 100%; display: block; overflow: visible; }
+#ex-ruler text, #ex-curve text { font-family: Inter, sans-serif; }
+.ex-legend { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .78rem; color: var(--ink-2); margin: .2rem 0 .4rem; }
+.ex-legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: .35rem; }
+.curve-wrap { position: relative; }
+.ex-tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--paper); font-size: .75rem; line-height: 1.45; padding: .45rem .6rem; border-radius: 6px; opacity: 0; transition: opacity .1s; white-space: nowrap; }
+.ex-notes { font-size: .82rem; color: var(--ink-2); display: grid; gap: .3rem; padding-left: 1.1rem; }
+@media (max-width: 760px) {
+  .flow { grid-template-columns: 1fr; }
+  .flow .arrow { transform: rotate(90deg); justify-self: center; }
+  .controls { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -209,6 +257,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
     <a class="tag" href="https://www.law.cornell.edu/cfr/text/17/229.404" target="_blank" rel="noopener"><b>$120K</b> SEC Item 404(a): must disclose</a>
     <a class="tag" href="https://www.iss-stoxx.com/file/policy/current/americas/us-voting-guidelines.pdf" target="_blank" rel="noopener"><b>$10K</b> ISS: professional services</a>
     <a class="tag" href="https://www.iss-stoxx.com/file/policy/current/americas/us-voting-guidelines.pdf" target="_blank" rel="noopener"><b>max($1M, 2%)</b> NYSE / <b>max($200K, 5%)</b> Nasdaq: not independent</a>
+    <button class="info-btn" id="info-open" type="button">ⓘ How are these lines drawn?</button>
   </div>
 
   <section class="ask">
@@ -282,6 +331,82 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
 
   <div id="err"></div>
 
+
+  <dialog id="explainer" aria-labelledby="ex-title">
+    <div class="ex-head">
+      <h2 id="ex-title">How the lines are drawn</h2>
+      <button class="ghost" id="info-close" type="button">Close ✕</button>
+    </div>
+    <div class="ex-body">
+      <p class="lead">A <b>related-party transaction</b> is business between a company and one of its own insiders: a director, an executive, a 5% shareholder, or their family. Most are ordinary. The rules ask three questions in turn, and only the last two decide whether a deal is <b>material</b>, meaning big enough that a director can no longer be counted as independent.</p>
+
+      <section>
+        <h3>Three questions</h3>
+        <div class="flow">
+          <div class="step">
+            <span class="n">1 · SEC ITEM 404</span>
+            <span class="q">Must the company tell shareholders?</span>
+            <span class="big">&gt; $120,000</span>
+            <span class="a">Any deal with an insider above $120,000 a year is listed in the proxy statement. Being listed is <b>not</b> a red flag. It's just transparency.</span>
+            <span class="eg">e.g. an executive's son-in-law on the payroll at $150,000</span>
+          </div>
+          <span class="arrow" aria-hidden="true">→</span>
+          <div class="step">
+            <span class="n">2 · ISS, ADVICE</span>
+            <span class="q">Is a director's firm giving the company advice?</span>
+            <span class="big">&gt; $10,000</span>
+            <span class="a">Legal, consulting, banking, audit, insurance or marketing advice is held to a very low bar: advisers can sway decisions. Above $10,000 a year, the director isn't independent.</span>
+            <span class="eg">applies to outside directors only</span>
+          </div>
+          <span class="arrow" aria-hidden="true">→</span>
+          <div class="step">
+            <span class="n">3 · ISS / NYSE / NASDAQ, SIZE</span>
+            <span class="q">Is any other deal big for whoever gets paid?</span>
+            <span class="big">% of revenue</span>
+            <span class="a">The deal is compared with the <b>annual revenue of the party receiving the money</b>. NYSE: over the greater of $1M or 2%. Nasdaq: over the greater of $200K or 5%.</span>
+            <span class="eg">$2.3B is huge, but only 3.6% of Broadcom's $63.9B</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h3>Try it</h3>
+        <div class="tryit">
+          <div class="presets">Load a real case:
+            <button class="chip" data-preset="broadcom">Meta → Broadcom</button>
+            <button class="chip" data-preset="spacex">SpaceX → Tesla</button>
+            <button class="chip" data-preset="law">Director's law firm</button>
+            <button class="chip" data-preset="private">Payment to a private firm</button>
+          </div>
+          <div class="controls">
+            <div class="ctl"><label for="ex-amt">Deal size, per year <b id="ex-amt-v"></b></label><input id="ex-amt" type="range" min="4" max="10" step="0.01" /></div>
+            <div class="ctl"><label for="ex-rev">Revenue of whoever receives the money <b id="ex-rev-v"></b></label><input id="ex-rev" type="range" min="5" max="12" step="0.01" /></div>
+            <div class="ctl"><label>Where the company is listed</label><div class="seg" id="ex-exch"><button type="button" data-v="NYSE">NYSE</button><button type="button" data-v="Nasdaq">Nasdaq</button></div></div>
+            <div class="ctl"><label>Kind of deal</label><div class="seg" id="ex-kind"><button type="button" data-v="other">Goods, services, loans</button><button type="button" data-v="advice">Advice (legal, consulting…)</button></div>
+              <label style="margin-top:.45rem; justify-content:flex-start; gap:.4rem"><input type="checkbox" id="ex-private" /> Recipient is private (revenue not public)</label></div>
+          </div>
+          <div id="ex-ruler" aria-label="Where this deal sits against the lines"></div>
+          <div class="verdict-box" id="ex-verdict" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section>
+        <h3>The size line grows with the recipient</h3>
+        <p class="lead" style="font-size:.92rem">Below a certain size, the fixed floor ($1M NYSE, $200K Nasdaq) sets the line. Above it, the percentage takes over. Nasdaq's 5% is looser than NYSE's 2% for big recipients, so the <b>same deal can pass on one exchange and fail on the other</b>. Hover the chart.</p>
+        <div class="ex-legend"><span><i style="background:var(--nyse)"></i>NYSE line: greater of $1M or 2%</span><span><i style="background:var(--nasdaq)"></i>Nasdaq line: greater of $200K or 5%</span><span>● a real deal</span></div>
+        <div class="curve-wrap"><div id="ex-curve"></div><div class="ex-tip" id="ex-tip"></div></div>
+      </section>
+
+      <section>
+        <h3>Not tested, and why</h3>
+        <ul class="ex-notes">
+          <li><b>🔒 Needs private data:</b> if the money goes to a private company, its revenue isn't public, so the line can't be computed. Only the board and that company know. This is a disclosure limit, not a research gap.</li>
+          <li><b>Own pay:</b> an executive's salary or stock isn't a related-party deal. SEC Item 404 leaves it to the pay tables.</li>
+          <li><b>Former insiders:</b> ISS asks what a director <i>currently</i> has, so a past director's deal is listed but not tested.</li>
+        </ul>
+      </section>
+    </div>
+  </dialog>
   <footer>
     Related Party Radar reads the latest DEF 14A and 10-K from SEC EDGAR at question time, and judges amounts with code, not the model. It covers what companies disclose: transactions under $120,000, and the revenue of private counterparties, are not in the filings. Not investment or legal advice.
   </footer>
@@ -619,6 +744,126 @@ function drawChart(rows) {
     el.addEventListener("mouseleave", () => (tip.style.opacity = 0));
   });
 }
+
+// --- Explainer: how the lines are drawn ---
+const ex = { amt: 9.36, rev: 10.8, exch: "Nasdaq", kind: "other", priv: false };
+const PRESETS = {
+  broadcom: { amt: Math.log10(2.3e9), rev: Math.log10(63.887e9), exch: "Nasdaq", kind: "other", priv: false },
+  spacex: { amt: Math.log10(143.3e6), rev: Math.log10(94.827e9), exch: "Nasdaq", kind: "other", priv: false },
+  law: { amt: Math.log10(250e3), rev: Math.log10(1.5e9), exch: "NYSE", kind: "advice", priv: false },
+  private: { amt: Math.log10(4.8e6), rev: 8, exch: "Nasdaq", kind: "other", priv: true },
+};
+const exLine = (rev, exch) => exch === "NYSE" ? Math.max(1e6, 0.02 * rev) : Math.max(2e5, 0.05 * rev);
+const fmt$ = (n) => n >= 1e12 ? `$${(n / 1e12).toFixed(n >= 1e13 ? 0 : 1).replace(/\.0$/, "")}T` : n >= 1e9 ? `$${(n / 1e9).toFixed(n >= 1e10 ? 1 : 2)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}K` : `$${Math.round(n)}`;
+
+function exSync() {
+  $("ex-amt").value = ex.amt; $("ex-rev").value = ex.rev; $("ex-private").checked = ex.priv;
+  document.querySelectorAll("#ex-exch button").forEach((b) => b.classList.toggle("on", b.dataset.v === ex.exch));
+  document.querySelectorAll("#ex-kind button").forEach((b) => b.classList.toggle("on", b.dataset.v === ex.kind));
+  $("ex-rev").disabled = ex.priv || ex.kind === "advice";
+  exRender();
+}
+function exRender() {
+  const amt = Math.pow(10, ex.amt), rev = Math.pow(10, ex.rev);
+  $("ex-amt-v").textContent = fmt$(amt);
+  $("ex-rev-v").textContent = ex.priv ? "not public" : ex.kind === "advice" ? "not used" : fmt$(rev);
+  const floor = ex.exch === "NYSE" ? 1e6 : 2e5, pct = ex.exch === "NYSE" ? 0.02 : 0.05;
+  let line = null, status, title, body;
+  const disclose = amt > 120000;
+  if (ex.kind === "advice") {
+    line = 10000;
+    status = amt > line ? "crossed" : "under";
+    title = amt > line ? "✕ Material: the director isn't independent" : "✓ Under the line";
+    body = `Advice is held to a flat <b>$10,000 a year</b>, whatever the firm's size. ${fmt$(amt)} is ${amt > line ? "over" : "under"} it.`;
+  } else if (ex.priv && amt > floor) {
+    line = floor; status = "private";
+    title = "🔒 Needs private data";
+    body = `${fmt$(amt)} is above the ${fmt$(floor)} floor, so the answer depends on the recipient's revenue, and a private company doesn't publish it. The line is somewhere at or above ${fmt$(floor)}.`;
+  } else {
+    line = ex.priv ? floor : exLine(rev, ex.exch);
+    status = amt > line ? "crossed" : "under";
+    title = amt > line ? "✕ Material: crosses the independence line" : "✓ Not material: under the line";
+    body = ex.priv
+      ? `${fmt$(amt)} is under the ${fmt$(floor)} floor, so it is under the line whatever the private recipient earns.`
+      : `Line = greater of <b>${fmt$(floor)}</b> or <b>${pct * 100}%</b> × ${fmt$(rev)} = <b>${fmt$(line)}</b>. The deal is <b>${(amt / rev * 100).toFixed(amt / rev < 0.001 ? 3 : 2)}%</b> of the recipient's revenue, so it is ${amt > line ? "over" : "under"} the line.`;
+  }
+  body += `<br><span style="color:var(--ink-3)">SEC: ${disclose ? "over $120,000, so it must be disclosed in the proxy" : "$120,000 or less, so it never has to be disclosed"}.</span>`;
+  $("ex-verdict").className = "verdict-box " + status;
+  $("ex-verdict").innerHTML = `<span class="vt">${title}</span>${body}`;
+  exRuler(amt, line, status);
+}
+function exRuler(amt, line, status) {
+  const box = $("ex-ruler"), W = box.clientWidth || 760, H = 96, pad = 24;
+  const lo = 3, hi = 12, x = (v) => pad + (Math.log10(v) - lo) / (hi - lo) * (W - 2 * pad);
+  const col = { crossed: "var(--critical)", under: "var(--good)", private: "var(--warning)" }[status];
+  let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Deal ${fmt$(amt)} against line ${line ? fmt$(line) : "unknown"}">`;
+  s += `<line x1="${pad}" x2="${W - pad}" y1="46" y2="46" stroke="var(--axis)" stroke-width="2"/>`;
+  for (let d = lo; d <= hi; d++) {
+    s += `<line x1="${x(10 ** d)}" x2="${x(10 ** d)}" y1="42" y2="50" stroke="var(--axis)"/>`;
+    s += `<text x="${x(10 ** d)}" y="66" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">${fmt$(10 ** d)}</text>`;
+  }
+  // SEC disclosure line
+  s += `<line x1="${x(120000)}" x2="${x(120000)}" y1="12" y2="58" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+  s += `<text x="${x(120000) + 5}" y="10" font-size="10.5" fill="var(--ink-2)">SEC $120K</text>`;
+  // independence line
+  if (line) {
+    s += `<line x1="${x(line)}" x2="${x(line)}" y1="38" y2="58" stroke="var(--ink)" stroke-width="2.5"/>`;
+    s += `<text x="${x(line)}" y="86" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">${status === "private" ? "≥ " : ""}line ${fmt$(line)}</text>`;
+  }
+  s += `<circle cx="${x(amt)}" cy="46" r="8" fill="${col}" stroke="var(--card)" stroke-width="2.5"/>`;
+  const nearSec = Math.abs(x(amt) - x(120000)) < 70;
+  s += `<text x="${x(amt)}" y="30" text-anchor="${nearSec && x(amt) < x(120000) ? "end" : nearSec ? "start" : "middle"}" font-size="11" font-weight="600" fill="var(--ink)">deal ${fmt$(amt)}</text>`;
+  box.innerHTML = s + "</svg>";
+}
+function exCurve() {
+  const box = $("ex-curve"), W = box.clientWidth || 760, narrow = W < 520, H = narrow ? 240 : 290;
+  const L = 58, R = 14, T = 12, B = 34, x0 = 6, x1 = 12, y0 = 5, y1 = 11;
+  const x = (v) => L + (Math.log10(v) - x0) / (x1 - x0) * (W - L - R);
+  const y = (v) => T + (1 - (Math.log10(v) - y0) / (y1 - y0)) * (H - T - B);
+  let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Independence line by recipient revenue, NYSE and Nasdaq">`;
+  for (let d = x0; d <= x1; d++) s += `<line x1="${x(10 ** d)}" x2="${x(10 ** d)}" y1="${T}" y2="${H - B}" stroke="var(--rule)"/><text x="${x(10 ** d)}" y="${H - B + 16}" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">${fmt$(10 ** d)}</text>`;
+  for (let d = 5; d <= 11; d++) s += `<line x1="${L}" x2="${W - R}" y1="${y(10 ** d)}" y2="${y(10 ** d)}" stroke="var(--rule)"/><text x="${L - 6}" y="${y(10 ** d) + 4}" text-anchor="end" font-size="10.5" fill="var(--ink-3)">${fmt$(10 ** d)}</text>`;
+  s += `<text x="${(L + W - R) / 2}" y="${H - 2}" text-anchor="middle" font-size="11" fill="var(--ink-2)">Revenue of whoever receives the money</text>`;
+  const path = (exch) => { let d = ""; for (let i = 0; i <= 120; i++) { const r = 10 ** (x0 + (x1 - x0) * i / 120); d += (i ? "L" : "M") + x(r).toFixed(1) + "," + y(exLine(r, exch)).toFixed(1); } return d; };
+  s += `<path d="${path("NYSE")}" fill="none" stroke="var(--nyse)" stroke-width="2.5" stroke-linejoin="round"/>`;
+  s += `<path d="${path("Nasdaq")}" fill="none" stroke="var(--nasdaq)" stroke-width="2.5" stroke-linejoin="round"/>`;
+  // where the percentage takes over
+  s += `<circle cx="${x(5e7)}" cy="${y(1e6)}" r="4" fill="var(--nyse)"/><text x="${x(5e7) + 6}" y="${y(1e6) + 15}" font-size="10.5" fill="var(--ink-2)">2% takes over at $50M</text>`;
+  s += `<circle cx="${x(4e6)}" cy="${y(2e5)}" r="4" fill="var(--nasdaq)"/><text x="${x(4e6) + 6}" y="${y(2e5) + 15}" font-size="10.5" fill="var(--ink-2)">5% takes over at $4M</text>`;
+  // direct labels
+  s += `<text x="${x(4e11)}" y="${y(exLine(4e11, "Nasdaq")) - 10}" text-anchor="end" font-size="11" font-weight="600" fill="var(--ink)">Nasdaq 5%</text>`;
+  s += `<text x="${x(4e11)}" y="${y(exLine(4e11, "NYSE")) + 18}" text-anchor="start" font-size="11" font-weight="600" fill="var(--ink)">NYSE 2%</text>`;
+  // the Broadcom example
+  const bx = x(63.887e9), by = y(2.3e9);
+  s += `<line x1="${bx}" x2="${bx}" y1="${y(exLine(63.887e9, "Nasdaq"))}" y2="${y(exLine(63.887e9, "NYSE"))}" stroke="var(--ink-3)" stroke-dasharray="3 3"/>`;
+  s += `<circle cx="${bx}" cy="${by}" r="6.5" fill="var(--ink)" stroke="var(--card)" stroke-width="2"/>`;
+  s += `<text x="${bx - 14}" y="${by - 30}" text-anchor="end" font-size="11" font-weight="600" fill="var(--ink)">Meta → Broadcom $2.3B</text>`;
+  s += `<text x="${bx - 14}" y="${by - 16}" text-anchor="end" font-size="10.5" fill="var(--ink-2)">under Nasdaq's line, over NYSE's</text>`;
+  s += `<line x1="${bx - 10}" x2="${bx - 5}" y1="${by - 14}" y2="${by - 5}" stroke="var(--ink-3)"/>`;
+  s += `<line id="ex-cross" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--ink-3)" stroke-width="1" opacity="0"/>`;
+  s += `<rect id="ex-hit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>`;
+  box.innerHTML = s + "</svg>";
+  const hit = $("ex-hit"), cross = $("ex-cross"), tip = $("ex-tip"), wrap = box.parentElement;
+  hit.addEventListener("mousemove", (ev) => {
+    const rc = box.querySelector("svg").getBoundingClientRect(), px = (ev.clientX - rc.left) * (W / rc.width);
+    const rev = 10 ** (x0 + (px - L) / (W - L - R) * (x1 - x0));
+    cross.setAttribute("x1", px); cross.setAttribute("x2", px); cross.setAttribute("opacity", 1);
+    tip.innerHTML = `Recipient revenue <b>${fmt$(rev)}</b><br>NYSE line ${fmt$(exLine(rev, "NYSE"))} · Nasdaq line ${fmt$(exLine(rev, "Nasdaq"))}`;
+    const wr = wrap.getBoundingClientRect();
+    tip.style.left = Math.min(ev.clientX - wr.left + 12, wr.width - 250) + "px"; tip.style.top = (ev.clientY - wr.top - 46) + "px"; tip.style.opacity = 1;
+  });
+  hit.addEventListener("mouseleave", () => { cross.setAttribute("opacity", 0); tip.style.opacity = 0; });
+}
+$("info-open").onclick = () => { $("explainer").showModal(); Object.assign(ex, PRESETS.broadcom); exSync(); exCurve(); };
+$("info-close").onclick = () => $("explainer").close();
+$("explainer").addEventListener("click", (e) => { if (e.target === $("explainer")) $("explainer").close(); });
+$("ex-amt").oninput = (e) => { ex.amt = +e.target.value; exRender(); };
+$("ex-rev").oninput = (e) => { ex.rev = +e.target.value; exRender(); };
+$("ex-private").onchange = (e) => { ex.priv = e.target.checked; exSync(); };
+$("ex-exch").onclick = (e) => { const v = e.target.dataset?.v; if (v) { ex.exch = v; exSync(); } };
+$("ex-kind").onclick = (e) => { const v = e.target.dataset?.v; if (v) { ex.kind = v; exSync(); } };
+document.querySelector("#explainer .presets").onclick = (e) => { const p = PRESETS[e.target.dataset?.preset]; if (p) { Object.assign(ex, p); exSync(); } };
+window.addEventListener("resize", () => { if ($("explainer").open) { exRender(); exCurve(); } });
 </script>
 </body>
 </html>
