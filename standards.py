@@ -27,6 +27,8 @@ STANDARDS = {
         "related_person": "Directors, executive officers, director nominees, their immediate family members (child, stepchild, "
         "parent, stepparent, spouse, sibling, in-laws, anyone sharing the household other than a tenant or employee), and "
         ">5% security holders and their immediate family.",
+        "exclusions": "Instruction 5.a: compensation already reported under Item 402 (the executive compensation "
+        "tables) need not be disclosed as a related person transaction.",
         "url": SEC_404_URL,
     },
     "iss_professional_services": {
@@ -65,7 +67,7 @@ STANDARDS = {
     },
 }
 
-RELATIONSHIPS = ("transactional", "professional_services", "charitable_grant", "family_employment", "other")
+RELATIONSHIPS = ("transactional", "professional_services", "charitable_grant", "family_employment", "executive_compensation", "other")
 
 
 def _pct(x: float) -> str:
@@ -90,6 +92,16 @@ def assess(
     """Apply every standard that fits this relationship. Each result is crossed / not_crossed / cannot_determine."""
     relationship = relationship if relationship in RELATIONSHIPS else "other"
     results = []
+
+    if relationship == "executive_compensation":
+        # An insider's own pay is not a related-party transaction: Item 404 Instruction 5.a.i
+        results.append({"standard": "sec_item_404a", "threshold_usd": None, "status": "excluded",
+                        "why": "This is the executive's own compensation, reported in the compensation tables under Item 402. "
+                               "Item 404 Instruction 5.a.i says such compensation need not be disclosed as a related person transaction."})
+        results.append({"standard": "iss_executive", "threshold_usd": None, "status": "not_applicable_to_amount",
+                        "why": "Independence tests don't apply: ISS already classifies a current officer as an Executive Director "
+                               "(category 1.1), and pay is judged under ISS's compensation policies, not its related-party tests."})
+        return {"amount_usd": amount_usd, "relationship": relationship, "exchange": exchange, "direction": direction, "results": results}
 
     if amount_usd is None:
         # The filing describes the deal but gives no dollar figure: say what the line is, not a verdict
@@ -206,6 +218,8 @@ if __name__ == "__main__":
     assert r["results"][1]["status"] == "not_crossed"  # under 5% of even the year-to-date revenue
     r = assess(2_000_000_000, "transactional", "Nasdaq", "company_pays", 27_083_000_000, recipient_label="SpaceX", revenue_is_floor=True)
     assert r["results"][1]["status"] == "cannot_determine"  # above the floor's line: needs the full year
+    r = assess(1_150_000, "executive_compensation", "Nasdaq", "company_pays")
+    assert r["results"][0]["status"] == "excluded"  # own pay: Item 402, not Item 404
     r = assess(None, "professional_services", "Nasdaq", "company_pays")
     assert r["results"][1]["status"] == "cannot_determine"  # no amount disclosed: never a verdict
     r = assess(25_000, "professional_services", "NYSE", "company_pays")

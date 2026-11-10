@@ -254,12 +254,16 @@ async def assess_materiality(
               executive search, IT consulting.
             transactional: everything else bought or sold: products, components, vehicles, leases,
               loans, aircraft, security, construction, IT support, deposits, advertising purchases.
-            charitable_grant, family_employment (the company employs an insider's relative), other.
+            charitable_grant, family_employment (the company employs an insider's RELATIVE),
+            executive_compensation (an executive's or director's OWN pay: salary, bonus, equity,
+              or notes/awards given as pay and shown in the compensation tables), other.
         direction: 'company_pays' (the company pays the other party) or 'company_receives'.
         source: The citation id of the passage that states the amount, e.g. 'S12'.
         insider_role: Who the related person is to the company: 'outside_director' (a non-employee
             director, or that director's family member), 'executive' (an executive officer, including
-            a CEO who also sits on the board, or their family), or 'holder' (a 5% holder).
+            a CEO who also sits on the board, or their family), 'holder' (a 5% holder), or 'former'
+            (no longer a director, officer or 5% holder, e.g. 'former director', or someone who was
+            an insider only of a predecessor such as a SPAC before a merger).
         recipient_name: When the company pays the other party: that party's name exactly as the
             filing writes it, e.g. 'Broadcom Inc.', 'SpaceX', 'Redwood Materials'. Never a ticker.
     """
@@ -287,6 +291,13 @@ async def assess_materiality(
         revenue, revenue_source, is_floor = await _revenue(counterparty)
         label = counterparty["name"] + f" ({counterparty['ticker']})" if counterparty else recipient_name
     result = assess(amount_usd, relationship, exchange, direction, revenue, recipient_label=label, revenue_is_floor=is_floor)
+    if insider_role == "former" and relationship != "executive_compensation":
+        # ISS 2.12 / 2.13 test what a director "currently" provides or has: a former insider's deal is
+        # still disclosed under Item 404, but it no longer bears on anyone's independence.
+        result["results"] = [r for r in result["results"] if r["standard"] == "sec_item_404a"] + [{
+            "standard": "iss_current_only", "threshold_usd": None, "status": "not_applicable_to_amount",
+            "why": "The related person is no longer an insider. ISS's tests ask whether a director currently provides "
+                   "services or currently has a material relationship, so this past deal is disclosed but not tested."}]
     source_id = source.strip("[] ")
     source_url = ctx.context.cites.get(source_id, {}).get("url", "")
     result.update(ticker=ticker, transaction=transaction, related_person=related_person, source=source_id, amount_note=amount_note, relationship_note=relationship_note, insider_role=insider_role,
@@ -321,7 +332,9 @@ You research one task about one company's related-party (insider) transactions i
    When a hit is the start of a section or a list, read on with read_paragraphs.
 3. For every specific transaction with a named or described related person, call assess_materiality
    once. A general statement ("no director had a material interest in these relationships") is a
-   finding to report, not a transaction: don't assess it. If the filing gives no dollar figure (only
+   finding to report, not a transaction: don't assess it. An insider's own pay (salary, bonus,
+   equity, notes or awards given as compensation) is not a related-party transaction either: SEC
+   Item 404 excludes it. Mention it only if your task asks, as executive_compensation. If the filing gives no dollar figure (only
    "less than 4% of the firm's revenue", say), leave amount_usd out and quote the words in amount_note. If the company pays a
    counterparty, pass its name as the filing writes it as recipient_name ('Broadcom Inc.',
    'SpaceX'). Code finds its revenue if it is listed. Never guess a ticker.
@@ -558,8 +571,10 @@ STATUS_WORDS = {
     "not_crossed": "does not cross",
     "cannot_determine": "needs private data (the recipient's revenue is not public)",
     "not_applicable_to_amount": "no dollar test",
+    "excluded": "excluded: the executive's own pay, reported under Item 402 (Item 404 Instruction 5.a.i)",
 }
 TABLE_WORDS = {"crossed": "✕ Material", "not_crossed": "✓ Not material", "cannot_determine": "Needs private data", "not_applicable_to_amount": "– No dollar test"}
+SEC_WORDS = {"crossed": "Required", "not_crossed": "Not required", "excluded": "Excluded: own pay (Item 402)"}
 
 
 def _amount(a: dict) -> str:
@@ -589,8 +604,8 @@ def transactions_table(assessments: list[dict]) -> str:
         ind = _independence(a)
         lines.append(
             f"| {a['related_person']} | {a['transaction']} | {_amount(a)} | "
-            f"{ {'crossed': 'Required', 'not_crossed': 'Not required'}.get(sec['status'], 'Amount not disclosed') } | "
-            f"{TABLE_WORDS[ind['status']] if ind else TABLE_WORDS['not_applicable_to_amount']} | "
+            f"{SEC_WORDS.get(sec['status'], 'Amount not disclosed')} | "
+            f"{'– Own pay, not a related-party deal' if ind and ind['standard'] == 'iss_executive' else '– Former insider, not tested' if ind and ind['standard'] == 'iss_current_only' else TABLE_WORDS[ind['status']] if ind else TABLE_WORDS['not_applicable_to_amount']} | "
             f"{'[' + a['source'] + ']' if a.get('source') else ''} |"
         )
     return "\n".join(lines)
@@ -599,6 +614,8 @@ def transactions_table(assessments: list[dict]) -> str:
 def verdict(assessments: list[dict]) -> dict:
     """The company-level answer. Material = at least one deal crosses an independence line (ISS /
     NYSE / Nasdaq). Crossing SEC's $120,000 line only means the deal must be disclosed."""
+    # An insider's own pay is not a related-party transaction (Item 404 Instruction 5), so it doesn't count
+    assessments = [a for a in assessments if a.get("relationship") != "executive_compensation"]
     statuses = [(_independence(a) or {"status": "not_applicable_to_amount"})["status"] for a in assessments]
     n, crossed, private = len(statuses), statuses.count("crossed"), statuses.count("cannot_determine")
     if not n:
