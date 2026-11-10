@@ -7,7 +7,9 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
-COPY app.py edgar.py standards.py context_panel.py context-panel.js index.html ./
+COPY app.py ./
+COPY radar/ ./radar/
+COPY static/ ./static/
 COPY data/ ./data/
 ENV PATH="/app/.venv/bin:$PATH"
 

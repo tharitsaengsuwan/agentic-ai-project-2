@@ -203,7 +203,7 @@ def assess(
 
 
 if __name__ == "__main__":
-    # Self-check: uv run standards.py
+    # Self-check: uv run python -m radar.standards
     r = assess(150_000, "family_employment", "Nasdaq", "company_pays")
     assert r["results"][0]["status"] == "crossed"
     r = assess(900_000, "transactional", "NYSE", "company_pays")

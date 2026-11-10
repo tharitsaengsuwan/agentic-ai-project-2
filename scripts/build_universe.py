@@ -1,6 +1,6 @@
 """Offline build step: data/universe.csv, the companies the agent can research.
 
-    uv run build_universe.py [path/to/IWB_holdings.csv]
+    uv run scripts/build_universe.py [path/to/IWB_holdings.csv]
 
 1. SEC's company_tickers_exchange.json gives every listed filer's ticker, CIK, name and exchange.
    The exchange decides which listing standard (NYSE or Nasdaq) the materiality tests use.
@@ -21,10 +21,12 @@ from pathlib import Path
 import httpx
 from dotenv import load_dotenv
 
-from edgar import TICKERS_URL, UNIVERSE_CSV, user_agent
+ROOT = Path(__file__).resolve().parent.parent  # the repo root
+sys.path.insert(0, str(ROOT))
 
-HERE = Path(__file__).parent
-load_dotenv(HERE / ".env")
+from radar.edgar import TICKERS_URL, UNIVERSE_CSV, user_agent  # noqa: E402
+
+load_dotenv(ROOT / ".env")
 
 
 def _key(ticker: str) -> str:
@@ -48,7 +50,7 @@ def main():
     fields = sec["fields"]  # cik, name, ticker, exchange
     rows = [dict(zip(fields, r)) for r in sec["data"]]
 
-    iwb_path = Path(sys.argv[1]) if len(sys.argv) > 1 else HERE / "data" / "IWB_holdings.csv"
+    iwb_path = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "data" / "IWB_holdings.csv"
     members, as_of = (read_iwb(iwb_path) if iwb_path.exists() else (None, ""))
 
     out = []

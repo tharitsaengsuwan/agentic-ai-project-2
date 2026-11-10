@@ -2,7 +2,7 @@
 
 To add it to a web agent that keeps a `sessions` dict:
     app.py:      add_context_panel(app, sessions)
-    index.html:  <script src="/context-panel.js"></script>
+    static/index.html:  <script src="/context-panel.js"></script>
                  then call showContext(sessionId) whenever the session changes
 Delete those lines to remove it.
 
@@ -35,7 +35,7 @@ def add_context_panel(app, sessions):
 
     @app.get("/context-panel.js")
     def script():
-        return FileResponse(Path(__file__).parent / "context-panel.js", headers={"Cache-Control": "no-cache"})
+        return FileResponse(Path(__file__).parent.parent / "static" / "context-panel.js", headers={"Cache-Control": "no-cache"})
 
 
 class AgentContexts:

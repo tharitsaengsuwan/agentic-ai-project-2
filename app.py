@@ -27,11 +27,12 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
-import edgar
-from context_panel import AgentContexts, PanelHooks, add_context_panel
-from standards import RELATIONSHIPS, STANDARDS, assess
+from radar import edgar
+from radar.context_panel import AgentContexts, PanelHooks, add_context_panel
+from radar.standards import RELATIONSHIPS, STANDARDS, assess
 
 HERE = Path(__file__).parent
+STATIC = HERE / "static"
 load_dotenv(HERE / ".env")
 set_tracing_disabled(True)  # traces upload to OpenAI by default; we're on Gemini
 
@@ -781,7 +782,7 @@ class ChatResponse(BaseModel):
 
 @app.get("/")
 def index():
-    return FileResponse(HERE / "index.html", headers={"Cache-Control": "no-cache"})
+    return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-cache"})
 
 
 @app.post("/chat", response_model=ChatResponse)

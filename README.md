@@ -49,7 +49,7 @@ agent says it can't decide, instead of guessing.
 | **Writer** | gemini-3.5-flash (falls back to flash-lite if rate-limited) | Writes the report from the findings and the calculator's fixed lines only: bottom line, how each deal was judged, **limits of public data**, and the standards applied. Code inserts the transactions table and the verdict. | none |
 
 **Things done in code, not by the model:**
-- **Materiality arithmetic** ([standards.py](standards.py)). The model extracts an amount, a relationship type and who receives the money. `assess()` returns *crossed / not crossed / can't determine* for each standard, with the arithmetic. When the amount is above the floor and the recipient doesn't publish revenue, the result is **needs private data**. The report presents this as a limit of what companies must disclose (the board can see the figure, investors can't), not as a gap in the research. When the filing gives no dollar figure at all ("less than 4% of the firm's revenue"), the model passes no amount and the result is "not disclosed". It may never invent a number.
+- **Materiality arithmetic** ([radar/standards.py](radar/standards.py)). The model extracts an amount, a relationship type and who receives the money. `assess()` returns *crossed / not crossed / can't determine* for each standard, with the arithmetic. When the amount is above the floor and the recipient doesn't publish revenue, the result is **needs private data**. The report presents this as a limit of what companies must disclose (the board can see the figure, investors can't), not as a gap in the research. When the filing gives no dollar figure at all ("less than 4% of the firm's revenue"), the model passes no amount and the result is "not disclosed". It may never invent a number.
 - **Counterparty revenue, looked up by code.** The model names the counterparty as the filing does ("SpaceX", "Broadcom Inc."), and `resolve_counterparty()` matches it strictly: exact legal name or a short alias list. In testing, the model once guessed SpaceX's ticker as `SPCE` (Virgin Galactic, $1.5M revenue), which made an $11.4M payment look like 738% of the recipient's revenue. Loose matches like "X Corp" → XPO are rejected. A recently listed company with no 10-K yet (SpaceX) is tested against its year-to-date 10-Q revenue as a **floor**: that settles "under the line" for certain, never "over".
 - **ISS's classification rules, enforced in code.** The professional-services line is only $10,000, so a mislabel makes any purchase "material". Code applies ISS footnote 7: only *advisory* work counts as professional services (legal, consulting, banking, insurance, audit, marketing, lobbying…), so security, aircraft, components and IT support are tested as transactional. A company providing a service to a director's affiliate is transactional too. The $10,000 test also applies only when the insider is an **outside director** or their family. For an executive like a CEO, whom ISS already treats as non-independent, a deal is judged on its size. Each reclassification is explained in the report. (Found in testing: Musk's $4.8M security services and xAI's $4M consulting to Tesla were both briefly flagged "Material".)
 - **Who the tests apply to.** An insider's **own pay** (salary, equity, notes given as compensation) is not a related-party transaction: SEC Item 404 Instruction 5.a.i excludes compensation reported under Item 402, so it shows as "Own pay" and doesn't count toward the verdict. A **former** insider's deal is still disclosed but not tested, because ISS asks what a director *currently* provides or has. Loans and convertible notes from insiders get the ordinary size test (ISS's guidance doesn't treat financing separately), which is the conservative reading.
@@ -84,7 +84,7 @@ up the report from `GET /result?session_id=…`.
 | SEC EDGAR archives | The filing documents (HTML), parsed into section-tagged paragraphs | `www.sec.gov/Archives/edgar/data/{cik}/{accession}/{doc}`, live, cached in memory |
 | [SEC XBRL company facts](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) | Revenue and total assets per fiscal year: the denominators for the % tests | `data.sec.gov/api/xbrl/companyfacts/CIK##########.json`, live |
 | SEC `company_tickers_exchange.json` + iShares IWB holdings | Ticker → CIK, exchange (decides NYSE vs Nasdaq test), Russell 1000 membership | built offline into `data/universe.csv` |
-| SEC Item 404 (eCFR via Cornell LII) and ISS 2026 U.S. Proxy Voting Guidelines | The materiality lines, quoted verbatim | encoded in `standards.py` |
+| SEC Item 404 (eCFR via Cornell LII) and ISS 2026 U.S. Proxy Voting Guidelines | The materiality lines, quoted verbatim | encoded in `radar/standards.py` |
 
 All SEC endpoints are free and keyless, but SEC requires a `User-Agent` naming you
 (`SEC_USER_AGENT="Your Name you@example.com"`) and fewer than 10 requests a second. The client
@@ -95,7 +95,7 @@ latest at question time (Tesla's 2026 proxy was filed 2026-10-19). The specifics
 family member, *how much*, and *which year*, are buried in footnote-level prose that models only
 remember vaguely or wrongly. The baseline answers below show this.
 
-**Offline build step:** `uv run build_universe.py [data/IWB_holdings.csv]` writes `data/universe.csv`
+**Offline build step:** `uv run scripts/build_universe.py [data/IWB_holdings.csv]` writes `data/universe.csv`
 and `data/universe_meta.json`. Download the IWB holdings CSV from the
 [iShares IWB page](https://www.ishares.com/us/products/239707/ishares-russell-1000-etf)
 ("Detailed Holdings and Analytics" → Download). Without it, every listed SEC filer is in scope.
@@ -176,10 +176,10 @@ Answering `Tesla` in the same session runs the full research.
 ```bash
 cp .env.example .env            # set SEC_USER_AGENT="Your Name you@example.com"
 gcloud auth application-default login
-uv run build_universe.py        # optional: rebuild data/universe.csv
+uv run scripts/build_universe.py   # optional: rebuild data/universe.csv
 uv run app.py                   # http://localhost:8000  (PORT=8010 uv run app.py for another port)
-uv run standards.py             # calculator self-check: prints ok
-uv run edgar.py AAPL            # data smoke test
+uv run python -m radar.standards  # calculator self-check: prints ok
+uv run python -m radar.edgar AAPL # data smoke test
 ```
 
 ```bash
@@ -202,8 +202,24 @@ wheel crashes in Docker Desktop's VM):
 
 ## Files
 
-- `app.py`: the four agents, their tools, the run (clarify → research → write → check citations), `/chat`, `/run` (SSE), `/clear`.
-- `edgar.py`: the SEC client: company lookup, filing lists, HTML → section-tagged paragraphs, BM25 search, text-fragment cite links, XBRL financials.
-- `standards.py`: the materiality lines with verbatim quotes, and the `assess()` calculator.
-- `build_universe.py`: the offline build of `data/universe.csv`.
-- `index.html`: the page. `context_panel.py` and `context-panel.js`: the raw-context drawer (from the course's deep-research reference).
+```
+app.py              the four agents, their tools, the run (clarify → research → write → check
+                    citations), and the API: /chat, /run (SSE), /result, /clear, /healthz
+pyproject.toml      dependencies; uv.lock pins them
+submission.json     deploy URL, authors, path
+Dockerfile          the Cloud Run image (installs from uv.lock, ships data/)
+radar/
+  edgar.py          SEC client: company lookup, strict counterparty matching, filing lists,
+                    HTML → section-tagged paragraphs, BM25 search, text-fragment links, XBRL revenue
+  standards.py      the materiality lines with verbatim quotes, and the assess() calculator
+  context_panel.py  records each agent's context for the raw-context drawer (from the course's
+                    deep-research reference)
+static/
+  index.html        the page: live research board, verdict, chart, report, "How are these lines drawn?"
+  context-panel.js  the raw-context drawer
+scripts/
+  build_universe.py the offline build of data/universe.csv
+data/
+  universe.csv      listed SEC filers: ticker, CIK, name, exchange, Russell 1000 flag
+  universe_meta.json  when and from what it was built
+```

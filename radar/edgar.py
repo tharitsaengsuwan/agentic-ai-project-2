@@ -22,8 +22,8 @@ from urllib.parse import quote
 
 import httpx
 
-HERE = Path(__file__).parent
-UNIVERSE_CSV = HERE / "data" / "universe.csv"
+ROOT = Path(__file__).parent.parent  # the repo root: data/ and .env live there
+UNIVERSE_CSV = ROOT / "data" / "universe.csv"
 
 SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
 FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
@@ -355,12 +355,12 @@ async def get_financials(cik: int) -> dict:
 
 
 if __name__ == "__main__":
-    # Smoke test: uv run edgar.py AAPL
+    # Smoke test: uv run python -m radar.edgar AAPL
     import sys
 
     from dotenv import load_dotenv
 
-    load_dotenv(HERE / ".env")
+    load_dotenv(ROOT / ".env")
 
     async def main(ticker: str):
         company = find_company(ticker)[0]
