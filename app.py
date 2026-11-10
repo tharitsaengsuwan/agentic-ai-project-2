@@ -675,6 +675,9 @@ class ToolHooks(PanelHooks):
 class Session:
     contexts: AgentContexts = field(default_factory=AgentContexts)
     history: list[dict] = field(default_factory=list)  # {role, content}: what the Clarifier sees
+    # The latest run's outcome, so a page that lost its stream (laptop asleep, tab switched) can pick it up
+    status: str = "idle"  # idle | running | done
+    last: dict | None = None
 
 
 sessions: dict[str, Session] = {}
@@ -802,13 +805,20 @@ async def run(message: str, session_id: str | None = None):
     queue: asyncio.Queue = asyncio.Queue()
 
     async def work():
+        session.status, session.last = "running", None
         try:
             result = await answer(session, message, queue.put_nowait)
-            queue.put_nowait({"type": "done", **result})
+            event = {"type": "done", **result}
         except Exception as e:
-            queue.put_nowait({"type": "error", "message": f"{type(e).__name__}: {str(e)[:500]}"})
+            event = {"type": "error", "message": f"{type(e).__name__}: {str(e)[:500]}"}
+        session.status, session.last = "done", json.loads(json.dumps(event, default=str))
+        queue.put_nowait(event)
 
+    # The run outlives the stream: it is capped at about 4.5 minutes, and a page that reconnects
+    # gets the result from /result instead of losing two minutes of research.
     task = asyncio.create_task(work())
+    _running.add(task)
+    task.add_done_callback(_running.discard)
 
     async def events():
         try:
@@ -822,10 +832,22 @@ async def run(message: str, session_id: str | None = None):
                 yield f"data: {json.dumps(event, default=str)}\n\n"
                 if event["type"] in ("done", "error"):
                     break
-        finally:
-            task.cancel()  # the page closed the stream: stop spending tokens
+        except asyncio.CancelledError:
+            pass  # the page went away; the run keeps going and its result waits at /result
 
     return StreamingResponse(events(), media_type="text/event-stream")
+
+
+_running: set[asyncio.Task] = set()  # keep references so runs aren't garbage-collected mid-flight
+
+
+@app.get("/result")
+def result(session_id: str):
+    """The latest run's outcome for a session: {status: idle|running|done, event}."""
+    session = sessions.get(session_id)
+    if not session:
+        return {"status": "unknown"}
+    return {"status": session.status, "event": session.last if session.status == "done" else None}
 
 
 @app.post("/clear")

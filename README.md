@@ -72,7 +72,9 @@ agent says it can't decide, instead of guessing.
 The page uses `GET /run` (Server-Sent Events) for the same run, to draw the research team live: a lane
 per agent, with researchers appearing side by side as the Lead sends them. A chart places every
 deal on a log dollar scale against its two lines. The **Agents' raw context** drawer shows the exact
-message list each agent sent to the model.
+message list each agent sent to the model. A run outlives its stream: if the page loses the
+connection (a laptop going to sleep, a flaky network), the server finishes the run and the page picks
+up the report from `GET /result?session_id=…`.
 
 ## Data
 

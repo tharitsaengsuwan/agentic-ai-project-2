@@ -358,7 +358,30 @@ function ask() {
   if (sessionId) params.set("session_id", sessionId);
   source = new EventSource("/run?" + params);
   source.onmessage = (m) => handle(JSON.parse(m.data));
-  source.onerror = () => { finish(); showError("Lost the connection to the server."); };
+  source.onerror = () => {
+    // The laptop slept or the network blinked. The run keeps going on the server: wait for it there.
+    if (source) source.close();
+    source = null;
+    if (sessionId) recover(); else { finish(); showError("Lost the connection to the server."); }
+  };
+}
+
+async function recover() {
+  $("err").innerHTML = '<div class="error" style="border-left-color:var(--warning)"><b>Connection lost.</b> The research keeps running on the server; this page will show the result when it is ready…</div>';
+  for (let i = 0; i < 120; i++) {  // up to 6 minutes
+    await new Promise((r) => setTimeout(r, 3000));
+    try {
+      const r = await fetch("/result?session_id=" + sessionId).then((x) => x.json());
+      if (r.status === "done" && r.event) {
+        $("err").innerHTML = "";
+        handle(r.event);
+        return;
+      }
+      if (r.status === "unknown") break;
+    } catch {}
+  }
+  finish();
+  showError("Lost the connection to the server, and the run's result could not be recovered. Try again.");
 }
 
 function finish() {
