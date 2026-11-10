@@ -197,6 +197,11 @@ def get_materiality_standards() -> str:
     return json.dumps(STANDARDS)
 
 
+ADVISORY = re.compile(
+    r"legal|law firm|counsel|attorney|consult|advis|investment bank|banking|financ|invest|insur|account|audit|"
+    r"marketing|property manag|real estate|realtor|brokerage|lobby|executive search|recruit", re.I)
+
+
 async def _revenue(company: dict | None) -> tuple[float | None, str | None, bool]:
     """(revenue, label, is_floor) from XBRL. Code looks it up: the model never types a revenue figure.
     is_floor: only year-to-date revenue exists (a recent listing with no 10-K yet)."""
@@ -224,6 +229,7 @@ async def assess_materiality(
     relationship: str,
     direction: str,
     source: str,
+    insider_role: str,
     amount_usd: float | None = None,
     amount_note: str | None = None,
     recipient_name: str | None = None,
@@ -241,16 +247,37 @@ async def assess_materiality(
             If the filing gives no dollar figure, leave it out: never estimate or invent one.
         amount_note: The filing's own words about the amount when it gives no figure or only a bound,
             e.g. 'less than 4% of WilmerHale's total revenue'.
-        relationship: One of: transactional (sales, purchases, leases, loans, aircraft, services
-            bought), professional_services (legal, consulting, banking, insurance, marketing advice),
+        relationship: One of:
+            professional_services: ONLY advisory services, per ISS: investment banking or financial
+              advice, commercial banking beyond deposits, investment services, insurance, accounting
+              or audit, consulting, marketing, legal, property management, realtor, lobbying,
+              executive search, IT consulting.
+            transactional: everything else bought or sold: products, components, vehicles, leases,
+              loans, aircraft, security, construction, IT support, deposits, advertising purchases.
             charitable_grant, family_employment (the company employs an insider's relative), other.
         direction: 'company_pays' (the company pays the other party) or 'company_receives'.
         source: The citation id of the passage that states the amount, e.g. 'S12'.
+        insider_role: Who the related person is to the company: 'outside_director' (a non-employee
+            director, or that director's family member), 'executive' (an executive officer, including
+            a CEO who also sits on the board, or their family), or 'holder' (a 5% holder).
         recipient_name: When the company pays the other party: that party's name exactly as the
             filing writes it, e.g. 'Broadcom Inc.', 'SpaceX', 'Redwood Materials'. Never a ticker.
     """
     company = _company(ticker)
     exchange = company["exchange"] if company else "Nasdaq"
+    # ISS's professional-services line is $10,000, so a mislabel turns any purchase "material".
+    # Only advisory work qualifies (ISS footnote 7): anything else is tested as transactional.
+    relationship_note = None
+    if relationship == "professional_services" and insider_role != "outside_director":
+        relationship, relationship_note = "transactional", (
+            "ISS's $10,000 professional-services line protects outside directors' independence; this insider is "
+            f"{'an executive (already non-independent under ISS)' if insider_role == 'executive' else 'a major holder'}, "
+            "so the deal is judged on its size as a transactional relationship.")
+    elif relationship == "professional_services" and direction == "company_receives":
+        relationship, relationship_note = "transactional", ("The company provides the service here; ISS footnote 7 treats a company "
+                                                            "serving a director's affiliate as a transactional relationship.")
+    elif relationship == "professional_services" and not ADVISORY.search(f"{transaction} {related_person} {recipient_name or ''}"):
+        relationship, relationship_note = "transactional", "Not advisory work under ISS footnote 7, so tested as a transactional relationship."
     revenue, revenue_source, is_floor, label = None, None, False, None
     if direction == "company_receives":
         revenue, revenue_source, is_floor = await _revenue(company)
@@ -262,10 +289,18 @@ async def assess_materiality(
     result = assess(amount_usd, relationship, exchange, direction, revenue, recipient_label=label, revenue_is_floor=is_floor)
     source_id = source.strip("[] ")
     source_url = ctx.context.cites.get(source_id, {}).get("url", "")
-    result.update(ticker=ticker, transaction=transaction, related_person=related_person, source=source_id, amount_note=amount_note,
+    result.update(ticker=ticker, transaction=transaction, related_person=related_person, source=source_id, amount_note=amount_note, relationship_note=relationship_note, insider_role=insider_role,
                   source_url=source_url, recipient_revenue_source=revenue_source)
     # Two agents may assess the same deal under different labels: same source and amount is the same deal
-    same = lambda a: a["transaction"].lower() == transaction.lower() or (a["source"] == source_id and a["amount_usd"] == amount_usd)
+    # The same deal assessed twice (two researchers, two labels): same label, or the same exact amount
+    # in the same direction. Keep the version that knows the recipient's revenue.
+    def same(a):
+        if a["transaction"].lower() == transaction.lower() or (a["source"] == source_id and a["amount_usd"] == amount_usd):
+            return True
+        return amount_usd is not None and a["amount_usd"] == amount_usd and a["direction"] == direction and (amount_usd - 1) % 1000 != 0
+    dupes = [a for a in ctx.context.assessments if same(a)]
+    if any(a.get("recipient_revenue_source") for a in dupes) and not revenue_source:
+        return json.dumps({**result, "note": "Already assessed with the recipient's revenue; kept that result."})
     ctx.context.assessments = [a for a in ctx.context.assessments if not same(a)]
     ctx.context.assessments.append(result)
     return json.dumps(result)
@@ -356,15 +391,17 @@ and its directors, executive officers, 5% holders or their families, and whether
 in SEC Item 404 and ISS's director-independence tests.
 
 1. Call find_company to confirm the company, its exchange and its Russell 1000 status.
-2. In ONE turn, call research 3 or 4 times so the researchers work in parallel. Cover:
+2. In ONE turn, call research 3 times so the researchers work in parallel. Cover:
    a. Every related person transaction disclosed in the latest proxy (DEF 14A): who, relationship,
       what, amount, year.
    b. The proxy's director independence discussion: relationships the board considered (payments to
       or from directors' other companies, charities, law firms) and the amounts or percentages given.
    c. The latest 10-K: the related party note in the financial statements and Item 13 (it often
       refers back to the proxy: say so if it does).
-   d. The company's own revenue and total assets (get_financials), needed as denominators.
-   Shape the tasks to the user's question: if it names a person or deal, target that.
+   Don't send a researcher for revenue: the calculator looks up every revenue figure itself.
+   Say "latest", never a year: your sense of the current year is out of date, and each researcher
+   is handed the latest filings. Shape the tasks to the user's question: if it names a person or
+   deal, target that.
 3. Read the findings. Every transaction in them that has a dollar amount must go through
    assess_materiality: call it yourself for any the researchers stated but didn't assess (the list of
    assessed ones follows each researcher's findings). Don't re-assess one already on that list. Use
@@ -591,7 +628,7 @@ def calculator_digest(assessments: list[dict]) -> str:
         rows.append(
             f"- {a['transaction']} | {a['related_person']} | {_amount(a)} | {a['direction'].replace('_', ' ')} | "
             f"SEC 404: {STATUS_WORDS[sec['status']]} | Independence ({ind['standard'] if ind else '-'}): {ind_word} | "
-            f"why: {ind['why'] if ind else sec['why']} | source: [{a['source']}]"
+            f"why: {ind['why'] if ind else sec['why']}{' ' + a['relationship_note'] if a.get('relationship_note') else ''} | source: [{a['source']}]"
         )
     summary = "; ".join(f"{word}: {n}" for word, n in tally.items())
     return f"Counts by independence result (for you only: state them in plain words, e.g. 'three are under the line and one needs private data'; never copy this line): {summary}.\n" + "\n".join(rows)
