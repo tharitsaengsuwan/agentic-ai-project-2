@@ -1,11 +1,11 @@
-# Meta: no tools vs. Related Party Radar
+# Meta: no tools vs. Paper Trail
 
 **Question:** `Do any of Meta's directors have business relationships with Meta that could affect their independence?`
 
 Both answers were produced on 2026-11-10 by the same model, `vertex_ai/gemini-3.5-flash`.
 
 - **No tools:** a single call with no system prompt and no tools.
-- **Related Party Radar:** `POST /chat` on the current code. It took 86s, with 49 tool calls from Clarifier, Lead, Researcher 1, Researcher 2, Researcher 3, Researcher 4, Researcher 5, Researcher 6. Every source link opens the SEC filing at the quoted sentence.
+- **Paper Trail:** `POST /chat` on the current code. It took 86s, with 49 tool calls from Clarifier, Lead, Researcher 1, Researcher 2, Researcher 3, Researcher 4, Researcher 5, Researcher 6. Every source link opens the SEC filing at the quoted sentence.
 
 ---
 
@@ -44,7 +44,7 @@ However, from a practical corporate governance perspective, relationships like *
 
 ---
 
-## Related Party Radar (`POST /chat`)
+## Paper Trail (`POST /chat`)
 
 ## Bottom line · Not material on public data
 Meta has related-party deals including private aircraft arrangements, an indemnification agreement, legal services, family employment, and hardware procurement [META DEF 14A 2026 ¶372](https://www.sec.gov/Archives/edgar/data/1326801/000162828026025532/meta-20260416.htm#:~:text=Our%20directors%20are%20also%20subject%20to%20stock)[META DEF 14A 2026 ¶204](https://www.sec.gov/Archives/edgar/data/1326801/000162828026025532/meta-20260416.htm#:~:text=We%20have%20entered%20into%20an%20arrangement%20with). Two transactions do not cross the ISS independence threshold, two need private data, one has no dollar test, and one has no applicable independence test [META DEF 14A 2026 ¶202](https://www.sec.gov/Archives/edgar/data/1326801/000162828026025532/meta-20260416.htm#:~:text=Hock%20E.%20Tan%20is%20the%20President%20and)[META DEF 14A 2026 ¶170](https://www.sec.gov/Archives/edgar/data/1326801/000162828026025532/meta-20260416.htm#:~:text=In%20addition%2C%20our%20board%20of%20directors%20considered). The $2,300,000,000 Broadcom deal does not cross the Nasdaq-based ISS line, but it would cross under the NYSE test [META DEF 14A 2026 ¶202](https://www.sec.gov/Archives/edgar/data/1326801/000162828026025532/meta-20260416.htm#:~:text=Hock%20E.%20Tan%20is%20the%20President%20and).

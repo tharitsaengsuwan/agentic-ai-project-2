@@ -1,11 +1,11 @@
-# Apple: no tools vs. Related Party Radar
+# Apple: no tools vs. Paper Trail
 
 **Question:** `Is any Apple director or executive involved in a related-party transaction, and does it matter?`
 
 Both answers were produced on 2026-11-10 by the same model, `vertex_ai/gemini-3.5-flash`.
 
 - **No tools:** a single call with no system prompt and no tools.
-- **Related Party Radar:** `POST /chat` on the current code. It took 50s, with 30 tool calls from Clarifier, Lead, Researcher 1, Researcher 2, Researcher 3, Researcher 4, Researcher 5. Every source link opens the SEC filing at the quoted sentence.
+- **Paper Trail:** `POST /chat` on the current code. It took 50s, with 30 tool calls from Clarifier, Lead, Researcher 1, Researcher 2, Researcher 3, Researcher 4, Researcher 5. Every source link opens the SEC filing at the quoted sentence.
 
 ---
 
@@ -59,7 +59,7 @@ For a company of Apple’s massive scale, the fact that its directors and execut
 
 ---
 
-## Related Party Radar (`POST /chat`)
+## Paper Trail (`POST /chat`)
 
 ## Bottom line · Not material
 Apple has an employment relationship with a family member of a former executive officer, and maintaining routine commercial and charitable relationships with organizations where its directors or executive officers serve [AAPL DEF 14A 2026 ¶112](https://www.sec.gov/Archives/edgar/data/320193/000130817926000008/aapl014016-def14a.htm#:~:text=Several%20of%20Apple%E2%80%99s%20Board%20members%20and%20executive)[AAPL DEF 14A 2026 ¶113](https://www.sec.gov/Archives/edgar/data/320193/000130817926000008/aapl014016-def14a.htm#:~:text=A%20family%20member%20of%20our%20former%20Chief). The employment transaction crosses the SEC Item 404 disclosure threshold, but it does not cross any ISS independence lines [AAPL DEF 14A 2026 ¶113](https://www.sec.gov/Archives/edgar/data/320193/000130817926000008/aapl014016-def14a.htm#:~:text=A%20family%20member%20of%20our%20former%20Chief). There is one transaction that has no dollar-based test under ISS guidelines [AAPL DEF 14A 2026 ¶113](https://www.sec.gov/Archives/edgar/data/320193/000130817926000008/aapl014016-def14a.htm#:~:text=A%20family%20member%20of%20our%20former%20Chief).

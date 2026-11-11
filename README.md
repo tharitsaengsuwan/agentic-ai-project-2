@@ -1,8 +1,8 @@
-# Related Party Radar
+# Paper Trail: the insider-deal detective
 
 **Does this company do business with its own insiders, and does any of it cross a line?**
 
-Related Party Radar is a deep-research agent over SEC filings. You name a large US public company and
+Paper Trail is a deep-research agent over SEC filings. You name a large US public company and
 a team of agents reads its latest proxy statement (DEF 14A) and annual report (10-K) for
 **related-party transactions**: deals between the company and its directors, executive officers,
 5% holders or their families. Each deal is then tested against the published lines that decide when
@@ -129,7 +129,7 @@ How the agent reaches every source: it looks up the company's filings with `GET 
 - Meta DEF 14A filed 2026-04-16, sections "Related Party Transactions" (¶201–205) and "Director Independence" (¶170–171): `https://www.sec.gov/Archives/edgar/data/1326801/000162828026025532/meta-20260416.htm`
 - Broadcom revenue: `https://data.sec.gov/api/xbrl/companyfacts/CIK0001730168.json` (10-K 0001730168-25-000121)
 
-| No tools, no system prompt | Related Party Radar |
+| No tools, no system prompt | Paper Trail (agent) |
 |---|---|
 | Names Hock Tan and Broadcom but gives **no figure**: *"Meta's multi-million or even multi-billion dollar purchases do not cross this 5% threshold."* It never checks the number, so it can't see that the deal would fail on NYSE. It adds Marc Andreessen and a16z portfolio companies, which aren't in the filing's related-party section, and **misses John Hegeman** entirely. | **Not material on public data.** Broadcom: $2,300,000,000 is **3.60%** of Broadcom's revenue, under Meta's Nasdaq line of $3,194,350,000. The report notes it **would cross the NYSE line** ($1,277,740,000). Hegeman: $17,500,000, Item 404, no dollar test. Kimmitt/WilmerHale: *"Not disclosed (less than 4% of WilmerHale's total revenue)"*, needs private data. Zuckerberg's $2.2M aircraft arrangement: needs private data. 86 s, 49 tool calls, 6 researchers, 40 source links. [Full answers →](docs/samples/meta.md) |
 
@@ -143,7 +143,7 @@ How the agent reaches every source: it looks up the company's filings with `GET 
 
 **Source:** Apple DEF 14A filed 2026-01-08, "Related Party Policy and Transactions" (¶112–113): `https://www.sec.gov/Archives/edgar/data/320193/000130817926000008/aapl014016-def14a.htm`
 
-| No tools, no system prompt | Related Party Radar |
+| No tools, no system prompt | Paper Trail (agent) |
 |---|---|
 | **Wrong.** It says *"no Apple director or executive officer is currently involved in a material related-party transaction that requires disclosure"*, then discusses Bob Iger leaving Apple's board in 2019. | **Not material.** Finds the former COO's family member at **"More than $120,000"**: Item 404 disclosure required, not independence-tested because the insider has left. Lists the vague amount and private counterparties under "Limits of public data". 50 s, 30 tool calls, 5 researchers, 11 source links. [Full answers →](docs/samples/apple.md) |
 
@@ -165,7 +165,7 @@ The question is about Musk's companies only. Other deals in the same proxy, like
 - Tesla revenue: `https://data.sec.gov/api/xbrl/companyfacts/CIK0001318605.json`
 - SpaceX year-to-date revenue: `https://data.sec.gov/api/xbrl/companyfacts/CIK0001181412.json` (10-Q filed 2026-10-22)
 
-| No tools, no system prompt | Related Party Radar |
+| No tools, no system prompt | Paper Trail (agent) |
 |---|---|
 | Describes the relationships in general, with **stale numbers**: *"In 2023, Tesla reported that it sold about $5.9 million in parts and services to SpaceX."* Nothing for 2025 and no Megapack revenue. On xAI it says only that *"Musk publicly floated the idea of Tesla investing $5 billion"* in mid-2024. It doesn't know about the **$2B agreement signed in January 2026**, and it tests nothing against any line. | **Not material on public data.** 9 Musk-company deals. SpaceX revenue $143,300,000 and xAI revenue $430,100,000: ✓ not material (0.15% and 0.45% of Tesla's revenue). SpaceX expenses $11,400,000: ✓ not material, using SpaceX's year-to-date revenue as a floor. The $2B investment and payments to X, xAI, The Boring Company and the security firm: needs private data, explained as a disclosure limit. 63 s, 33 tool calls, 3 researchers, 47 source links. [Full answers →](docs/samples/tesla.md) |
 

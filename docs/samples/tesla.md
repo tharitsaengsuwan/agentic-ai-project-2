@@ -1,11 +1,11 @@
-# Tesla: no tools vs. Related Party Radar
+# Tesla: no tools vs. Paper Trail
 
 **Question:** `Does Tesla have material related-party transactions with Elon Musk's other companies?`
 
 Both answers were produced on 2026-11-10 by the same model, `vertex_ai/gemini-3.5-flash`.
 
 - **No tools:** a single call with no system prompt and no tools.
-- **Related Party Radar:** `POST /chat` on the current code. It took 63s, with 33 tool calls from Clarifier, Lead, Researcher 1, Researcher 2, Researcher 3. Every source link opens the SEC filing at the quoted sentence.
+- **Paper Trail:** `POST /chat` on the current code. It took 63s, with 33 tool calls from Clarifier, Lead, Researcher 1, Researcher 2, Researcher 3. Every source link opens the SEC filing at the quoted sentence.
 
 ---
 
@@ -55,7 +55,7 @@ While the dollar amounts of these transactions are usually small compared to Tes
 
 ---
 
-## Related Party Radar (`POST /chat`)
+## Paper Trail (`POST /chat`)
 
 ## Bottom line · Not material on public data
 Tesla engaged in nine related-party transactions in 2025 and early 2026 involving entities affiliated with its CEO, Elon Musk [TSLA DEF 14A 2026 ¶361](https://www.sec.gov/Archives/edgar/data/1318605/000110465926116700/tm267596-1_def14a.htm#:~:text=Elon%20Musk%20is%20an%20executive%20officer%2C%20director)[TSLA 10-K 2026 ¶517](https://www.sec.gov/Archives/edgar/data/1318605/000162828026003952/tsla-20251231.htm#:~:text=Tesla%20periodically%20does%20business%20with%20certain%20entities). Under director independence standards, four of these transactions do not cross the material threshold [TSLA DEF 14A 2026 ¶364](https://www.sec.gov/Archives/edgar/data/1318605/000110465926116700/tm267596-1_def14a.htm#:~:text=Since%20April%202016%2C%20SpaceX%20has%20invoiced%20Tesla)[TSLA DEF 14A 2026 ¶363](https://www.sec.gov/Archives/edgar/data/1318605/000110465926116700/tm267596-1_def14a.htm#:~:text=SpaceX%20is%20party%20to%20certain%20commercial%2C%20licensing). The remaining five transactions require private counterparty revenue data to determine if they cross independence lines [TSLA DEF 14A 2026 ¶366](https://www.sec.gov/Archives/edgar/data/1318605/000110465926116700/tm267596-1_def14a.htm#:~:text=TBC%20is%20party%20to%20certain%20commercial%20agreements)[TSLA DEF 14A 2026 ¶365](https://www.sec.gov/Archives/edgar/data/1318605/000110465926116700/tm267596-1_def14a.htm#:~:text=As%20part%20of%20a%20multi%2Dplatform%20advertising%20campaign%2C).

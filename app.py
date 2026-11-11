@@ -1,4 +1,4 @@
-"""Related Party Radar: deep research over SEC filings for insider deals and where they cross the line.
+"""Paper Trail, the insider-deal detective: deep research over SEC filings for insider deals and where they cross the line.
 
 Four agents, each with one job:
   Clarifier   decides whether the question names a company and is about insider/related-party deals.
@@ -66,12 +66,12 @@ class Research:
     cite_ids: dict[tuple, str] = field(default_factory=dict)  # (url, paragraph) -> "S12"
 
     def cite(self, url: str, label: str, key=None) -> str:
-        key = (url, key)
-        if key not in self.cite_ids:
+        ident = (url, key)
+        if ident not in self.cite_ids:
             cid = f"S{len(self.cites) + 1}"
-            self.cite_ids[key] = cid
-            self.cites[cid] = {"label": label, "url": url}
-        return self.cite_ids[key]
+            self.cite_ids[ident] = cid
+            self.cites[cid] = {"label": label, "url": url, "para": key if isinstance(key, int) else None}
+        return self.cite_ids[ident]
 
 
 # filing URL -> "DEF 14A 2026", filled by list_filings, for citation labels
@@ -126,7 +126,7 @@ def _passage(state: Research, url: str, p: dict, chars: int = 1200) -> str:
     text = p["text"] if len(p["text"]) <= chars else p["text"][:chars] + " [...]"
     label = f"{_filing_labels.get(url, 'filing')} ¶{p['i']}"
     cid = state.cite(edgar.cite_url(url, p["text"]), label, key=p["i"])
-    return f"[para {p['i']}] Section: {p['heading'] or '(none)'}\n{text}\nCite as: [{cid}]"
+    return f"[para {p['i']}] Section: {p['heading'] or '(none)'}\n{text}\nCitation id: [{cid}] (cite this, not the paragraph number)"
 
 
 @function_tool
@@ -568,6 +568,12 @@ def resolve_citations(report: str, state: Research) -> tuple[str, list[dict]]:
 
     def one(cid: str) -> str:
         c = state.cites.get(cid)
+        if not c and cid[1:].isdigit():
+            # A model sometimes writes the paragraph number as the id ("S202" for paragraph 202).
+            # If exactly one cited passage is that paragraph, that is the one it meant.
+            same_para = [x for x in state.cites.values() if x.get("para") == int(cid[1:])]
+            if len({x["url"] for x in same_para}) == 1:
+                c = same_para[0]
         if not c:
             rows.append({"label": cid, "url": None, "status": "unknown_id"})
             return f"(unknown source {cid})"
@@ -626,7 +632,7 @@ def _amount(a: dict) -> str:
     if v is None:
         return "Not disclosed" + (f" ({a['amount_note']})" if a.get("amount_note") else "")
     if v > 1000 and (v - 1) % 1000 == 0:  # the "in excess of $120,000" convention: 120001
-        return f"More than ${v - 1:,.0f}"
+        return f"more than ${v - 1:,.0f}"
     return f"${v:,.0f}"
 
 
@@ -647,12 +653,16 @@ def transactions_table(assessments: list[dict]) -> str:
         sec = next(r for r in a["results"] if r["standard"] == "sec_item_404a")
         ind = _independence(a)
         lines.append(
-            f"| {a['related_person']} | {a['transaction']} | {_amount(a)} | "
+            f"| {a['related_person']} | {a['transaction']} | {_amount(a)[:1].upper() + _amount(a)[1:]} | "
             f"{SEC_WORDS.get(sec['status'], 'Amount not disclosed')} | "
             f"{'– Own pay, not a related-party deal' if ind and ind['standard'] == 'iss_executive' else '– Former insider, not tested' if ind and ind['standard'] == 'iss_current_only' else TABLE_WORDS[ind['status']] if ind else TABLE_WORDS['not_applicable_to_amount']} | "
             f"{'[' + a['source'] + ']' if a.get('source') else ''} |"
         )
     return "\n".join(lines)
+
+
+def _n(n: int) -> str:
+    return "1 transaction" if n == 1 else f"{n} transactions"
 
 
 def verdict(assessments: list[dict]) -> dict:
@@ -667,12 +677,13 @@ def verdict(assessments: list[dict]) -> dict:
                 "detail": "The filings read disclose no related-party transaction with a dollar amount."}
     if crossed:
         return {"level": "material", "label": "Material",
-                "detail": f"{crossed} of {n} transactions cross an independence materiality line."}
+                "detail": f"{crossed} of {_n(n)} {'crosses' if crossed == 1 else 'cross'} an independence materiality line."}
     if private:
         return {"level": "public_not_material", "label": "Not material on public data",
-                "detail": f"None of {n} transactions crosses a line that public data can test; {private} can only be "
+                "detail": f"None of {_n(n)} crosses a line that public data can test; {private} can only be "
                 "tested with a private counterparty's revenue."}
-    return {"level": "not_material", "label": "Not material", "detail": f"None of {n} transactions crosses an independence materiality line."}
+    detail = "It does not cross an independence materiality line." if n == 1 else f"None of {_n(n)} crosses an independence materiality line."
+    return {"level": "not_material", "label": "Not material", "detail": detail}
 
 
 def calculator_digest(assessments: list[dict]) -> str:
@@ -800,7 +811,7 @@ async def answer(session: Session, message: str, emit) -> dict:
 
 # --- FastAPI -------------------------------------------------------------------------------------------
 
-app = FastAPI(title="Related Party Radar")
+app = FastAPI(title="Paper Trail")
 
 
 class _Contexts(dict):
