@@ -187,17 +187,24 @@ curl -s -X POST localhost:8000/chat -H 'content-type: application/json' \
   -d '{"message": "Does Tesla have material related-party transactions?"}' | jq '.response, (.tool_calls | map(.agent) | unique)'
 ```
 
-## Deploy (Cloud Run, continuous from GitHub)
+## Deploy (Cloud Run, continuous from GitHub, buildpack)
 
-The `Dockerfile` installs from `uv.lock` and ships `data/`. In Cloud Run → *Create service* →
-*Continuously deploy from a repository* → this repo, Dockerfile build. Then set:
-- env var `SEC_USER_AGENT`
-- request timeout **600 s** (a run takes 2–3 minutes; the agent caps itself at about 4.5)
-- memory 1 GiB, min instances 0, max 2
+In Cloud Run: *Create service* → *Continuously deploy from a repository* → this repo, branch `main`.
+
+**Build:**
+- Build type: **Go, Node.js, Python… via Google Cloud's buildpacks**
+- Build context directory: `/`
+- Entrypoint: `uvicorn app:app --host 0.0.0.0 --port $PORT`
+
+The buildpack installs the dependencies from `pyproject.toml` and `uv.lock`, and ships `data/` with the code. Python is pinned to **3.13** in `.python-version`, because the current ubuntu2404 builder offers 3.13 and newer. The locked dependencies were checked on 3.13: they install, and a full `/chat` run works with that entrypoint.
+
+**Service settings:**
+- env var `SEC_USER_AGENT="Your Name you@example.com"` (SEC requires it)
+- request timeout **600 s** (a run takes 1–2 minutes; the agent caps itself at 250 s)
+- memory 1 GiB; min instances **0**; max instances **1** (in-flight runs and their `/result` live in memory)
 - a service account with **Vertex AI User**
 
-Local container test (on Apple Silicon, build for Cloud Run's platform: the arm64 `cryptography`
-wheel crashes in Docker Desktop's VM):
+A `Dockerfile` is also included as an alternative build. To test it locally on Apple Silicon, build for Cloud Run's platform, because the arm64 `cryptography` wheel crashes in Docker Desktop's VM:
 `docker build --platform linux/amd64 -t rpr . && docker run --platform linux/amd64 -p 8080:8080 -e SEC_USER_AGENT="Name you@example.com" rpr`
 
 ## Files
@@ -207,7 +214,7 @@ app.py              the four agents, their tools, the run (clarify → research 
                     citations), and the API: /chat, /run (SSE), /result, /clear, /healthz
 pyproject.toml      dependencies; uv.lock pins them
 submission.json     deploy URL, authors, path
-Dockerfile          the Cloud Run image (installs from uv.lock, ships data/)
+Dockerfile          optional container build (Cloud Run uses the buildpack)
 radar/
   edgar.py          SEC client: company lookup, strict counterparty matching, filing lists,
                     HTML → section-tagged paragraphs, BM25 search, text-fragment links, XBRL revenue
