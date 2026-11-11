@@ -1,5 +1,7 @@
 {
-  "deploy_url": "https://REPLACE-AFTER-DEPLOY.run.app",
-  "authors": ["ts3735"],
+  "deploy_url": "https://agentic-ai-project-2-git-726125543122.europe-west1.run.app",
+  "authors": [
+    "ts3735"
+  ],
   "path": "research"
 }

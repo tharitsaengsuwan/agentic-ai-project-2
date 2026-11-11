@@ -211,7 +211,7 @@ A `Dockerfile` is also included as an alternative build. To test it locally on A
 
 ```
 app.py              the four agents, their tools, the run (clarify → research → write → check
-                    citations), and the API: /chat, /run (SSE), /result, /clear, /healthz
+                    citations), and the API: /chat, /run (SSE), /result, /clear, /health
 pyproject.toml      dependencies; uv.lock pins them
 submission.json     deploy URL, authors, path
 Dockerfile          optional container build (Cloud Run uses the buildpack)

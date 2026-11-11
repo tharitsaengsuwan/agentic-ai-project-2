@@ -150,6 +150,40 @@ async def search_filing(ctx: RunContextWrapper[Research], url: str, query: str) 
 
 
 @function_tool
+async def read_section(ctx: RunContextWrapper[Research], url: str, heading: str) -> str:
+    """Read every paragraph of one section of a filing, in order: everything under the heading that
+    best matches. Use it for the related person transactions section and the director independence
+    section, so no transaction in them is missed. Search hits alone can skip paragraphs.
+
+    Args:
+        url: The filing's URL.
+        heading: The section's heading or words from it, e.g. 'Related Person Transactions',
+            'Certain Relationships and Related Party Transactions', 'Director Independence'.
+    """
+    try:
+        paragraphs = await edgar.get_document(url)
+    except Exception as e:
+        return f"Could not read {url}: {type(e).__name__}: {e}"
+    ctx.context.sources[url] = "filing"
+    want = set(re.findall(r"[a-z]+", heading.lower())) - {"and", "of", "the", "with"}
+    if not want:
+        return "Give the section heading to read."
+    # Score each distinct heading by how many of the wanted words it contains; prefer shorter headings
+    headings = {}
+    for p in paragraphs:
+        words = set(re.findall(r"[a-z]+", p["heading"].lower()))
+        if p["heading"] and p["heading"] not in headings:
+            headings[p["heading"]] = (len(want & words) / len(want), -len(p["heading"]))
+    if not headings or max(headings.values())[0] < 0.5:
+        return f"No section heading matches '{heading}'. Try search_filing instead."
+    best = max(headings, key=headings.get)
+    # Every run of paragraphs under that heading (a section can be split by page breaks)
+    chunk = [p for p in paragraphs if p["heading"] == best][:30]
+    text = "\n\n".join(_passage(ctx.context, url, p, chars=2500) for p in chunk)
+    return f"Section '{best}': {len(chunk)} paragraphs.\n\n{text[:20000]}"
+
+
+@function_tool
 async def read_paragraphs(ctx: RunContextWrapper[Research], url: str, start: int, count: int = 6) -> str:
     """Read consecutive paragraphs of a filing, to see the rest of a section or table that a search hit is in.
 
@@ -330,10 +364,13 @@ You research one task about one company's related-party (insider) transactions i
 
 1. Use the filing URLs you are given: the latest DEF 14A proxy, or the latest 10-K for the
    financial-statement note. Use the previous year's only if your task asks about last year.
-2. Search it with search_filing. Useful words: "related person transactions", "certain relationships",
-   "director independence", "immediate family", "son", "daughter", "brother", "spouse", "employed",
-   "lease", "aircraft", "purchased", "ordinary course", "% of", "revenues", "charitable", "consulting".
-   When a hit is the start of a section or a list, read on with read_paragraphs.
+2. If your task is a section of the proxy (related person transactions, or director independence),
+   read the WHOLE section with read_section first: every paragraph in it can be a transaction, and
+   search hits alone skip some. Then use search_filing for anything mentioned elsewhere. Useful words:
+   "related person transactions", "certain relationships", "director independence", "immediate
+   family", "son", "daughter", "brother", "spouse", "employed", "lease", "aircraft", "purchased",
+   "ordinary course", "% of", "revenues", "charitable", "consulting". Read on with read_paragraphs.
+   Never say a filing discloses nothing else unless you read the whole section.
 3. For every specific transaction with a named or described related person, call assess_materiality
    once. A general statement ("no director had a material interest in these relationships") is a
    finding to report, not a transaction: don't assess it. An insider's own pay (salary, bonus,
@@ -349,10 +386,12 @@ You research one task about one company's related-party (insider) transactions i
    If the filings don't answer part of your task, say so in a last bullet that starts "Not found:".
 
 Use at most 8 tool calls. Never write URLs and never invent a citation id: only ids a tool returned.
+Name people only as the filing names them. If it says "a family member of our former Chief Operating
+Officer", write exactly that: never add a name from your own memory.
 Relationship types for assess_materiality: {", ".join(RELATIONSHIPS)}.""",
     model=RESEARCHER_MODEL,
     model_settings=SETTINGS,
-    tools=[list_filings, search_filing, read_paragraphs, get_financials, find_company, assess_materiality],
+    tools=[list_filings, read_section, search_filing, read_paragraphs, get_financials, find_company, assess_materiality],
 )
 
 
@@ -504,7 +543,8 @@ One line each, linked: SEC Item 404(a), ISS 2026 U.S. guidelines.
 Rules:
 - Every sentence that states a fact ends with the citation id(s) of its source, copied from the
   findings: [S4] or [S4][S9]. Never write a URL for a filing; code turns the ids into links.
-- Never invent a citation id or a number. If the findings don't say, write that they don't.
+- Never invent a citation id, a number or a name. Name people only as the findings do: never add a
+  name from your own memory (if the filing says "our former Chief Operating Officer", so do you).
 - For a test that needs private data, never write "can't be determined" alone: say it needs the
   private counterparty's revenue, which isn't public.
 - "Material" for SEC disclosure is not the same as "material" for independence: keep them apart.
@@ -862,7 +902,7 @@ def clear(session_id: str | None = None):
     return {"status": "ok"}
 
 
-@app.get("/healthz")
+@app.get("/health")  # not /healthz: Cloud Run reserves paths ending in "z"
 def healthz():
     return {"ok": True, "companies": len(edgar.universe())}
 
